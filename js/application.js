@@ -14,31 +14,45 @@ var workers = [
     new Worker("js/ai.js"),
     new Worker("js/ai.js")
 ];
-working = 0;
-workerResults = new Float32Array(4);
+
+var working = 0;
+var bestResult = 0;
+var currentDepth = 3;
+var bestMove = 0;
+var stateEvaled = 0;
+var lastStateEvaled = 0;
+var minStateEval = 40000;
 
 //var startTime, moves;
 
 for (let i = 0; i < 4; i++) {
     workers[i].onmessage = function(e) {
         working--;
-        workerResults[i] = e.data;
+        stateEvaled += e.data.stateEvaled;
+        if (e.data.result > bestResult) {
+            bestResult = e.data.result;
+            bestMove = i;
+        }
         if (working == 0) {
-            var bestMove = 0, bestResult = 0;
-            for (var j = 0; j < 4; j++) {
-                if (workerResults[j] > bestResult) {
-                    bestResult = workerResults[j];
-                    bestMove = j;
+            if (stateEvaled >= minStateEval || stateEvaled <= lastStateEvaled) {
+                if (bestResult > 0) game.move(bestMove);
+                else game.move(0 | 4 * Math.random());
+                if (game.over) stopAI();
+                if (game.won) {
+                    game.keepPlaying = true;
+                    game.actuator.clearMessage();
                 }
+                currentDepth = 3;
+                lastStateEvaled = 0;
+                minStateEval = 40000;
+                if (aiRunning) step();
             }
-            if (bestResult > 0) game.move(bestMove);
-            else game.move(Math.floor(Math.random() * 4));
-            if (game.over) stopAI();
-            if (game.won) {
-                game.keepPlaying = true;
-                game.actuator.clearMessage();
+            else {
+                currentDepth++;
+                lastStateEvaled = stateEvaled;
+                minStateEval *= 2;
+                step();
             }
-            if (aiRunning) step();
         }
     }
 }
@@ -56,13 +70,14 @@ function currentState() {
 
 function step() {
     working = 4;
-    //moves++;
-    workerResults = new Float32Array(4);
+    stateEvaled = 0;
+    bestResult = 0;
     for (var i = 0; i < 4; i++) {
         var board = currentState();
         workers[i].postMessage({
             board: board,
-            dir: i
+            dir: i,
+            depth: currentDepth
         })
     }
 }

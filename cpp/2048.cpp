@@ -86,33 +86,25 @@ float Expectimax_moveNode(board_t s, unsigned depth) {
     return max;
 }
 
-float Expectimax_search(board_t board, int moveDir) {
-    board_t s = move(board, moveDir);
-    if (s == board) return 0;
+float Expectimax_search(board_t s, int moveDir, int depth) {
+    board_t newBoard = move(s, moveDir);
+    if (newBoard == s) return 0;
     stateEvaled = 0;
-    unsigned currentDepth = 3;
-    float result = Expectimax_spawnNode(s, currentDepth);
-    unsigned long long minState = 10000;
-    unsigned long long lastStates = 0;
-
-    while ((stateEvaled < minState) && (stateEvaled > lastStates) && (currentDepth < 25)) {
-        stateEvaled = 0;
-        currentDepth++;
-        minState *= 2;
-        lastStates = stateEvaled;
-        result = Expectimax_spawnNode(s, currentDepth);
-    }
-    return result;
+    return Expectimax_spawnNode(newBoard, depth);
 }
 
 extern "C" {
 
-float jsWork(row_t row1, row_t row2, row_t row3, row_t row4, int dir) {
-    return Expectimax_search((board_t(row1) << 48) | (board_t(row2) << 32) | (board_t(row3) << 16) | board_t(row4), dir);
+float jsWork(row_t row1, row_t row2, row_t row3, row_t row4, int dir, int depth) {
+    return Expectimax_search((board_t(row1) << 48) | (board_t(row2) << 32) | (board_t(row3) << 16) | board_t(row4), dir, depth);
+}
+
+int nodes() {
+    return stateEvaled;
 }
 
 }
 
 int main() {
-    emscripten_run_script("onmessage=e=>postMessage(Module._jsWork(e.data.board[0],e.data.board[1],e.data.board[2],e.data.board[3],e.data.dir))");
+    emscripten_run_script("onmessage=e=>postMessage({result:Module._jsWork(e.data.board[0],e.data.board[1],e.data.board[2],e.data.board[3],e.data.dir,e.data.depth),stateEvaled:Module._nodes()})");
 }
