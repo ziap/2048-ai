@@ -2,13 +2,9 @@
 #include <vector>
 #include <cmath>
 
-typedef unsigned long long board_t;
-typedef unsigned short row_t;
-
 class lookup {
     private:
     float heurTable[65536];
-    //std::bitset<65536> loseTable;
     public:
     lookup(std::vector<float> parameters) {
         const float SCORE_LOST_PENALTY = 200000.0f;
@@ -70,17 +66,8 @@ class lookup {
                 SCORE_MONOTONICITY_WEIGHT * std::min(monotonicity_left, monotonicity_right) -
                 SCORE_DIFF_WEIGHT * diff - 
                 SCORE_SUM_WEIGHT * sum;
-
-            //loseTable[row] = (empty + merges) == 0;
         }
     }
-    /*bool losing(board_t board) {
-        return
-            loseTable[(board >> 48) & 0xffff] &&
-            loseTable[(board >> 32) & 0xffff] &&
-            loseTable[(board >> 16) & 0xffff] &&
-            loseTable[board & 0xffff];
-    }*/
     float heuristic(board_t board) {
         return
             heurTable[(board >> 48) & 0xffff] +

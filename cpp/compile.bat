@@ -1,1 +1,0 @@
-em++ 2048.cpp -o ai.js -s WASM=1 -O3 -s EXPORTED_FUNCTIONS=['_jsWork','_main']

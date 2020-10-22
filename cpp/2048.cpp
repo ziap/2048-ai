@@ -1,8 +1,8 @@
-#include "headers/cache.hpp"
-#include "headers/lookup.hpp"
 #include "headers/board.hpp"
+#include "headers/lookup.hpp"
 #include "headers/moveTable.hpp"
 #include "headers/revTable.hpp"
+#include <algorithm>
 
 #include <emscripten.h>
 
@@ -53,8 +53,7 @@ board_t move(board_t s, int dir) {
 }
 
 float staticEvaluation(board_t s) {
-    /*if (score.losing(s) && score.losing(transpose)) return 0;
-    else*/ return score.heuristic(s) + score.heuristic(board::transpose(s));
+    return score.heuristic(s) + score.heuristic(board::transpose(s));
 }
 
 float Expectimax_spawnNode(board_t s, unsigned depth) {
@@ -68,8 +67,8 @@ float Expectimax_spawnNode(board_t s, unsigned depth) {
         expect += Expectimax_moveNode(s | (0x2ULL << (60 - 4 * i)), depth - 1) * 0.1f;
         weight++;
     }
-    if (weight > 0) return expect / (float)weight;
-    else return 0;
+    float score = expect / (float)weight;
+    return score;
 }
 
 float Expectimax_moveNode(board_t s, unsigned depth) {
