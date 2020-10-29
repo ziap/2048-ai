@@ -2,20 +2,15 @@
 #include <vector>
 #include <cmath>
 
-class lookup {
+class heuristic {
     private:
     float heurTable[65536];
     public:
-    lookup(std::vector<float> parameters) {
+    heuristic(float SCORE_MONOTONICITY_POWER, float SCORE_MONOTONICITY_WEIGHT,
+              float SCORE_SUM_POWER, float SCORE_SUM_WEIGHT,
+              float SCORE_MERGES_WEIGHT, float SCORE_EMPTY_WEIGHT,
+              float SCORE_DIFF_POWER, float SCORE_DIFF_WEIGHT) {
         const float SCORE_LOST_PENALTY = 200000.0f;
-        const float SCORE_MONOTONICITY_POWER = parameters[0];
-        const float SCORE_MONOTONICITY_WEIGHT = parameters[1];
-        const float SCORE_SUM_POWER = parameters[2];
-        const float SCORE_SUM_WEIGHT = parameters[3];
-        const float SCORE_MERGES_WEIGHT = parameters[4];
-        const float SCORE_EMPTY_WEIGHT = parameters[5]; 
-        const float SCORE_DIFF_POWER = parameters[6];
-        const float SCORE_DIFF_WEIGHT = parameters[7];
         for (unsigned row = 0; row < 65536; ++row) {
             unsigned line[4] = {
                 (row >>  0) & 0xf,
@@ -68,7 +63,7 @@ class lookup {
                 SCORE_SUM_WEIGHT * sum;
         }
     }
-    float heuristic(board_t board) {
+    float score_heuristic(board_t board) {
         return
             heurTable[(board >> 48) & 0xffff] +
             heurTable[(board >> 32) & 0xffff] +

@@ -1,13 +1,17 @@
 /*
-    The code for the AI playing 2048
-    The depth is set to 3 (7 plies) and minimun state evaluation is set to 10000 for stronger AI
-    Compile with Emscripten using compile.bat 
+    Simulation for batch testing and future parameter tuning.
+    Minimum depth is set to 1 (3 plies) and minimun state evaluation is set to 100 for faster run.
+    Compile with gcc using "g++ simulator.cpp -o simulator.exe"
 */
+#define NUM_OF_RUN 100
+#define MIN_DEPTH 1
+#define MIN_EVAL 100
 
 #include "headers/board.hpp"
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <algorithm>
-#include <emscripten.h>
 
 long long stateEvaled = 0;
 
@@ -53,9 +57,9 @@ float Expectimax_search(board_t s, int moveDir) {
     board_t newBoard = move(s, moveDir);
     if (newBoard == s) return 0;
     stateEvaled = 0;
-    unsigned currentDepth = 3;
+    unsigned currentDepth = MIN_DEPTH;
     float result = Expectimax_spawnNode(newBoard, currentDepth);
-    unsigned long long minState = 10000;
+    unsigned long long minState = MIN_EVAL;
     unsigned long long lastStates = 0;
 
     while ((stateEvaled < minState) && (stateEvaled > lastStates)) {
@@ -68,16 +72,29 @@ float Expectimax_search(board_t s, int moveDir) {
     return result;
 }
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-float EMSCRIPTEN_KEEPALIVE jsWork(row_t row1, row_t row2, row_t row3, row_t row4, int dir) {
-    return Expectimax_search((board_t(row1) << 48) | (board_t(row2) << 32) | (board_t(row3) << 16) | board_t(row4), dir);
+int bestMove(board_t s) {
+    float maxScore = 0;
+    float move = rand() % 4;
+    for (int i = 0; i < 4; i++) {
+        float score = Expectimax_search(s, i);
+        if (score > maxScore) {
+            maxScore = score;
+            move = i;
+        }
+    }
+    return move;
 }
-#ifdef __cplusplus
-}
-#endif
 
 int main() {
-    emscripten_run_script("onmessage=e=>postMessage(Module._jsWork(e.data.board[0],e.data.board[1],e.data.board[2],e.data.board[3],e.data.dir))");
+    freopen("result.txt", "w", stdout);
+    srand(std::chrono::system_clock::now().time_since_epoch().count());
+    for (int i = 0; i < NUM_OF_RUN; i++) {
+        board_t board = addTile(addTile(0));
+        for (;;) {
+            board_t newBoard = move(board, bestMove(board));
+            if (newBoard == board) break;
+            else board = addTile(newBoard);
+        }
+        print(board);
+    }
 }
