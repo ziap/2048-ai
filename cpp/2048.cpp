@@ -1,6 +1,6 @@
 /*
     The code for the AI playing 2048
-    The depth is set to 3 (7 plies) and minimun state evaluation is set to 10000 for stronger AI
+    The depth is set to 3 (7 plies) and minimun state evaluation is set to 16384 for stronger AI
     Compile with Emscripten using compile.bat 
 */
 
@@ -55,7 +55,7 @@ float Expectimax_search(board_t s, int moveDir) {
     stateEvaled = 0;
     unsigned currentDepth = 3;
     float result = Expectimax_spawnNode(newBoard, currentDepth);
-    unsigned long long minState = 10000;
+    unsigned long long minState = 16384;
     unsigned long long lastStates = 0;
 
     while ((stateEvaled < minState) && (stateEvaled > lastStates)) {

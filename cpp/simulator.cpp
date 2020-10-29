@@ -1,11 +1,11 @@
 /*
     Simulation for batch testing and future parameter tuning.
-    Minimum depth is set to 1 (3 plies) and minimun state evaluation is set to 100 for faster run.
+    Minimum depth is set to 1 (3 plies) and minimun state evaluation is set to 128 for faster run.
     Compile with gcc using "g++ simulator.cpp -o simulator.exe"
 */
 #define NUM_OF_RUN 100
 #define MIN_DEPTH 1
-#define MIN_EVAL 100
+#define MIN_EVAL 128
 
 #include "headers/board.hpp"
 
