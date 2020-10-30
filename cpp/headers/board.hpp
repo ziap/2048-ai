@@ -5,10 +5,6 @@ typedef unsigned short row_t;
 #include "moveTable.hpp"
 #include "revTable.hpp"
 
-#include <iostream>
-#include <iomanip>
-#include <random>
-#include <chrono>
 #include <cmath>
 
 board_t transpose(board_t s) {
@@ -24,17 +20,6 @@ board_t transpose(board_t s) {
 
 row_t reverse_row(row_t row) {
     return (row >> 12) | ((row >> 4) & 0x00F0) | ((row << 4) & 0x0F00) | (row << 12);
-}
-
-void print(board_t s) {
-    std::cout << "+-------+-------+-------+-------+\n";
-    for (int i = 0; i < 16; i++) {
-        unsigned val = pow(2, ((s >> (60 - 4 * i)) & 0xf));
-        if (val > 1) std::cout << "| " << std::setw(5) << val << " ";
-        else std::cout << "|       ";
-        if (i % 4 == 3) std::cout << "|\n+-------+-------+-------+-------+\n";
-    }
-    std::cout << '\n';
 }
 
 board_t moveLeft(board_t s) {
@@ -57,12 +42,6 @@ board_t moveUp(board_t s) {
 
 board_t moveDown(board_t s) {
     return transpose(moveRight(transpose(s)));
-}
-
-board_t addTile(board_t s) {
-    int randomPos = rand() % 16;
-    while (((s >> (60 - 4 * randomPos)) & 0xf) != 0) randomPos = rand() % 16;
-    return ((rand() % 10) ? (s | (0x1ULL << (60 - 4 * randomPos))) : (s | (0x2ULL << (60 - 4 * randomPos))));
 }
 
 board_t move(board_t s, int dir) {

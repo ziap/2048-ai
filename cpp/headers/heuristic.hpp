@@ -1,5 +1,4 @@
 #include <bitset>
-#include <vector>
 #include <cmath>
 
 class heuristic {
