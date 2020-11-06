@@ -1,9 +1,3 @@
-/*
-    The code for the AI playing 2048
-    The depth is set to 3 (7 plies) and minimun state evaluation is set to 10000 for stronger AI
-    Compile with Emscripten using compile.bat 
-*/
-
 #include "headers/board.hpp"
 
 #include <algorithm>
@@ -11,7 +5,7 @@
 
 long long stateEvaled = 0;
 
-heuristic score(4.0f, 47.0f, 3.5f, 11.0f, 700.0f, 270.0f, 1.0f, 0.0f);
+heuristic score(4.0f, 47.0f, 3.5f, 11.0f, 700.0f, 270.0f);
 
 float Expectimax_moveNode(board_t s, unsigned depth);
 float Expectimax_spawnNode(board_t s, unsigned depth);
@@ -55,10 +49,10 @@ float Expectimax_search(board_t s, int moveDir) {
     stateEvaled = 0;
     unsigned currentDepth = 3;
     float result = Expectimax_spawnNode(newBoard, currentDepth);
-    unsigned long long minState = 10000;
+    unsigned long long minState = 32768;
     unsigned long long lastStates = 0;
 
-    while ((stateEvaled < minState) && (stateEvaled > lastStates) && (stateEvaled < 312500)) {
+    while ((stateEvaled < minState) && (stateEvaled > lastStates) && (stateEvaled < 16777216)) {
         currentDepth++;
         minState *= 2;
         lastStates = stateEvaled;

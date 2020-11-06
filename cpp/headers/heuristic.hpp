@@ -6,9 +6,8 @@ class heuristic {
     float heurTable[65536];
     public:
     heuristic(float SCORE_MONOTONICITY_POWER, float SCORE_MONOTONICITY_WEIGHT,
-              float SCORE_SUM_POWER, float SCORE_SUM_WEIGHT,
-              float SCORE_MERGES_WEIGHT, float SCORE_EMPTY_WEIGHT,
-              float SCORE_DIFF_POWER, float SCORE_DIFF_WEIGHT) {
+                   float SCORE_SUM_POWER, float SCORE_SUM_WEIGHT,
+                   float SCORE_MERGES_WEIGHT, float SCORE_EMPTY_WEIGHT) {
         const float SCORE_LOST_PENALTY = 200000.0f;
         for (unsigned row = 0; row < 65536; ++row) {
             unsigned line[4] = {
@@ -44,21 +43,18 @@ class heuristic {
 
             float monotonicity_left = 0;
             float monotonicity_right = 0;
-            float diff = 0;
             for (int i = 1; i < 4; ++i) {
                 if (line[i-1] > line[i]) {
                     monotonicity_left += pow(line[i-1], SCORE_MONOTONICITY_POWER) - pow(line[i], SCORE_MONOTONICITY_POWER);
                 } else {
                     monotonicity_right += pow(line[i], SCORE_MONOTONICITY_POWER) - pow(line[i-1], SCORE_MONOTONICITY_POWER);
                 }
-                diff += fabs(pow(line[i - 1], SCORE_DIFF_POWER) - pow(line[i], SCORE_DIFF_POWER));
             }
 
             heurTable[row] = SCORE_LOST_PENALTY +
                 SCORE_EMPTY_WEIGHT * empty +
                 SCORE_MERGES_WEIGHT * merges -
                 SCORE_MONOTONICITY_WEIGHT * std::min(monotonicity_left, monotonicity_right) -
-                SCORE_DIFF_WEIGHT * diff - 
                 SCORE_SUM_WEIGHT * sum;
         }
     }
@@ -68,5 +64,5 @@ class heuristic {
             heurTable[(board >> 32) & 0xffff] +
             heurTable[(board >> 16) & 0xffff] +
             heurTable[board & 0xffff];
-    } 
+    }
 };
