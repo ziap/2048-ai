@@ -13,7 +13,7 @@
  I came up with new heuristics for the evaluation function such as smoothness (making the board easier to merge), floating tiles (preventing flat boards),... but I can't tune the weights using mathematical optimization so I used the same heuristics in [this AI by Robert Xiao](https://github.com/nneonneo/2048-ai).
 
 ## Modification
- If you want to edit the search parameters or changing the evaluation function, the c++ source is available in this repo. You need to set up Emscripten first, you can download it [here](https://emscripten.org/docs/getting_started/downloads.html), make sure to add Emscripten to PATH. After modifying the source code, you can compile using the batch file (windows) or using this command:
+ If you want to edit the search parameters or change the evaluation function, the c++ source is available in this repo. You need to set up Emscripten first, you can download it [here](https://emscripten.org/docs/getting_started/downloads.html), make sure to add Emscripten to PATH. After modifying the source code, you can compile using the batch file (windows) or using this command:
 ```
 em++ cpp/2048.cpp -o js/ai.js -s WASM=1 -O3 -s NO_EXIT_RUNTIME=1
 ```
