@@ -1,6 +1,3 @@
-#include <bitset>
-#include <cmath>
-
 class heuristic {
     private:
     float heurTable[65536];

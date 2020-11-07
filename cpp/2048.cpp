@@ -1,7 +1,8 @@
-#include "headers/board.hpp"
-
+#include <cmath>
 #include <algorithm>
 #include <emscripten.h>
+
+#include "headers/board.hpp"
 
 long long stateEvaled = 0;
 
@@ -49,7 +50,7 @@ float Expectimax_search(board_t s, int moveDir) {
     stateEvaled = 0;
     unsigned currentDepth = 3;
     float result = Expectimax_spawnNode(newBoard, currentDepth);
-    unsigned long long minState = 32768;
+    unsigned long long minState = 16384;
     unsigned long long lastStates = 0;
 
     while ((stateEvaled < minState) && (stateEvaled > lastStates) && (stateEvaled < 16777216)) {

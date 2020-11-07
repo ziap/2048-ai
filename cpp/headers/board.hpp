@@ -5,8 +5,6 @@ typedef unsigned short row_t;
 #include "moveTable.hpp"
 #include "revTable.hpp"
 
-#include <cmath>
-
 board_t transpose(board_t s) {
     board_t a1 = s & 0xF0F00F0FF0F00F0FULL;
     board_t a2 = s & 0x0000F0F00000F0F0ULL;
