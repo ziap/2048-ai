@@ -1,11 +1,11 @@
-class heuristic {
+class Heuristic {
     private:
-    float heurTable[65536];
+    double heurTable[65536];
     public:
-    heuristic(float SCORE_MONOTONICITY_POWER, float SCORE_MONOTONICITY_WEIGHT,
-                   float SCORE_SUM_POWER, float SCORE_SUM_WEIGHT,
-                   float SCORE_MERGES_WEIGHT, float SCORE_EMPTY_WEIGHT) {
-        const float SCORE_LOST_PENALTY = 200000.0f;
+    Heuristic(double SCORE_MONOTONICITY_POWER, double SCORE_MONOTONICITY_WEIGHT,
+                   double SCORE_SUM_POWER, double SCORE_SUM_WEIGHT,
+                   double SCORE_MERGES_WEIGHT, double SCORE_EMPTY_WEIGHT) {
+        const double SCORE_LOST_PENALTY = 200000.0f;
         for (unsigned row = 0; row < 65536; ++row) {
             unsigned line[4] = {
                 (row >>  0) & 0xf,
@@ -13,7 +13,7 @@ class heuristic {
                 (row >>  8) & 0xf,
                 (row >> 12) & 0xf
             };
-            float sum = 0;
+            double sum = 0;
             int empty = 0;
             int merges = 0;
 
@@ -38,8 +38,8 @@ class heuristic {
                 merges += 1 + counter;
             }
 
-            float monotonicity_left = 0;
-            float monotonicity_right = 0;
+            double monotonicity_left = 0;
+            double monotonicity_right = 0;
             for (int i = 1; i < 4; ++i) {
                 if (line[i-1] > line[i]) {
                     monotonicity_left += pow(line[i-1], SCORE_MONOTONICITY_POWER) - pow(line[i], SCORE_MONOTONICITY_POWER);
@@ -55,7 +55,7 @@ class heuristic {
                 SCORE_SUM_WEIGHT * sum;
         }
     }
-    float score_heuristic(board_t board) {
+    double score_heuristic(board_t board) {
         return
             heurTable[(board >> 48) & 0xffff] +
             heurTable[(board >> 32) & 0xffff] +

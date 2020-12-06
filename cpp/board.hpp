@@ -5,6 +5,18 @@ typedef unsigned short row_t;
 #include "moveTable.hpp"
 #include "revTable.hpp"
 
+int count_empty(board_t x)
+{
+    x |= (x >> 2) & 0x3333333333333333ULL;
+    x |= (x >> 1);
+    x = ~x & 0x1111111111111111ULL;
+    x += x >> 32;
+    x += x >> 16;
+    x += x >>  8;
+    x += x >>  4;
+    return x & 0xf;
+}
+
 board_t transpose(board_t s) {
     board_t a1 = s & 0xF0F00F0FF0F00F0FULL;
     board_t a2 = s & 0x0000F0F00000F0F0ULL;
