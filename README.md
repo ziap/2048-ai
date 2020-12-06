@@ -20,7 +20,11 @@
 ```
 em++ cpp/2048.cpp -o js/ai.js -s WASM=1 -O3 -s NO_EXIT_RUNTIME=1
 ```
- Then you can test the AI by running it on a [web server](https://developer.mozilla.org/en-US/docs/Learn/Common_questions/set_up_a_local_testing_server).
+ Then you can test the AI by running it on a web server. The simplest way is to make a simple python http server:
+```
+python -m http.server 8080
+```
+ and access the AI via http://localhost:8080. You can change 8080 to any port number.
 
 # License
  This app is licensed under the MIT license.
