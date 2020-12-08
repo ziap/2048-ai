@@ -55,7 +55,7 @@ class Heuristic {
                 SCORE_SUM_WEIGHT * sum;
         }
     }
-    double score_heuristic(board_t board) {
+    double ScoreHeuristic(board_t board) {
         return
             heurTable[(board >> 48) & 0xffff] +
             heurTable[(board >> 32) & 0xffff] +

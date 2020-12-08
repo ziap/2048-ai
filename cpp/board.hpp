@@ -5,7 +5,7 @@ typedef unsigned short row_t;
 #include "moveTable.hpp"
 #include "revTable.hpp"
 
-int count_empty(board_t x)
+int CountEmpty(board_t x)
 {
     x |= (x >> 2) & 0x3333333333333333ULL;
     x |= (x >> 1);
@@ -17,7 +17,7 @@ int count_empty(board_t x)
     return x & 0xf;
 }
 
-board_t transpose(board_t s) {
+board_t Transpose(board_t s) {
     board_t a1 = s & 0xF0F00F0FF0F00F0FULL;
     board_t a2 = s & 0x0000F0F00000F0F0ULL;
     board_t a3 = s & 0x0F0F00000F0F0000ULL;
@@ -28,38 +28,38 @@ board_t transpose(board_t s) {
     return b1 | (b2 >> 24) | (b3 << 24);
 }
 
-row_t reverse_row(row_t row) {
+row_t ReverseRow(row_t row) {
     return (row >> 12) | ((row >> 4) & 0x00F0) | ((row << 4) & 0x0F00) | (row << 12);
 }
 
-board_t moveLeft(board_t s) {
+board_t MoveLeft(board_t s) {
     return (board_t(moveTable[s & 0xffff]) |
            (board_t(moveTable[(s >> 16) & 0xffff]) << 16) |
            (board_t(moveTable[(s >> 32) & 0xffff]) << 32) |
            (board_t(moveTable[(s >> 48) & 0xffff]) << 48));
 }
 
-board_t moveRight(board_t s) {
+board_t MoveRight(board_t s) {
     return (board_t(revTable[s & 0xffff]) |
            (board_t(revTable[(s >> 16) & 0xffff]) << 16) |
            (board_t(revTable[(s >> 32) & 0xffff]) << 32) |
            (board_t(revTable[(s >> 48) & 0xffff]) << 48));
 }
 
-board_t moveUp(board_t s) {
-    return transpose(moveLeft(transpose(s)));
+board_t MoveUp(board_t s) {
+    return Transpose(MoveLeft(Transpose(s)));
 }
 
-board_t moveDown(board_t s) {
-    return transpose(moveRight(transpose(s)));
+board_t MoveDown(board_t s) {
+    return Transpose(MoveRight(Transpose(s)));
 }
 
-board_t move(board_t s, int dir) {
+board_t Move(board_t s, int dir) {
     switch (dir) {
-        case 0: return moveUp(s);
-        case 1: return moveRight(s);
-        case 2: return moveDown(s);
-        case 3: return moveLeft(s);
+        case 0: return MoveUp(s);
+        case 1: return MoveRight(s);
+        case 2: return MoveDown(s);
+        case 3: return MoveLeft(s);
         default: return s;
     }
 }
