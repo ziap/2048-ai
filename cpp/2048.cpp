@@ -5,7 +5,7 @@
 #include "board.hpp"
 
 //The key parameter controlling the strength and speed of the AI
-#define MIN_DEPTH 1
+#define MIN_DEPTH 3
 
 Heuristic score(4.0f, 47.0f, 3.5f, 11.0f, 700.0f, 270.0f);
 long long stateEvaled = 0;
