@@ -1,10 +1,6 @@
 typedef unsigned long long board_t;
 typedef unsigned short row_t;
 
-#include "heuristic.hpp"
-#include "moveTable.hpp"
-#include "revTable.hpp"
-
 int CountEmpty(board_t x)
 {
     x |= (x >> 2) & 0x3333333333333333ULL;

@@ -15,6 +15,7 @@ var workers = [
 
 var working = 0;
 var bestMove, bestResult;
+var startTime, totalMove;
 
 for (let i = 0; i < 4; i++) {
     workers[i].onmessage = function(e) {
@@ -25,6 +26,7 @@ for (let i = 0; i < 4; i++) {
         }
         if (working == 0) {
             game.move(bestMove);
+            totalMove++;
             if (game.over) stopAI();
             if (game.won) {
                 game.keepPlaying = true;
@@ -61,6 +63,8 @@ function step() {
 
 function initAI() {
     startAI = () => {
+        totalMove = 0;
+        startTime = Date.now();
         document.getElementsByClassName("ai-buttons")[1].innerHTML = "Stop";
         aiRunning = true;
         step();
@@ -70,6 +74,10 @@ function initAI() {
 
 
 function stopAI() {
+    var endTime = Date.now();
+    console.log("Time elapsed: " + (endTime - startTime) / 1000 + " seconds"
+        + "\nMoves taken: " + totalMove + " moves"
+        + "\nSpeed: " + totalMove * 1000 / (endTime - startTime) + " moves per second");
     document.getElementsByClassName("ai-buttons")[1].innerHTML = "Start AI";
     aiRunning = false;
     initAI();

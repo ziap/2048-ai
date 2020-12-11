@@ -1,75 +1,79 @@
-#include <cmath>
-#include <algorithm>
-#include <emscripten.h>
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <random>
+#include <chrono>
+#include "search.hpp"
 
-#include "board.hpp"
-
-//The key parameter controlling the strength and speed of the AI
-#define MIN_DEPTH 3
-
-Heuristic score(4.0f, 47.0f, 3.5f, 11.0f, 700.0f, 270.0f);
-long long stateEvaled = 0;
-double minProb;
-
-double ExpectimaxMoveNode(board_t s, unsigned depth, double prob);
-double ExpectimaxSpawnNode(board_t s, unsigned depth, double prob);
-
-double ExpectimaxSpawnNode(board_t s, unsigned depth, double prob) {
-    if (depth <= 0 || prob < minProb) return score.ScoreHeuristic(s) + score.ScoreHeuristic(Transpose(s));
-    int emptyTiles = CountEmpty(s);
-    prob /= emptyTiles;
-    double expect = 0.0;
-    for (int i = 0; i < 16; i++) {
-        unsigned val = (s >> (60 - 4 * i)) & 0xf;
-        if (val != 0) continue;
-        expect += ExpectimaxMoveNode(s | (0x1ULL << (60 - 4 * i)), depth - 1, prob * 0.9) * 0.9;
-        expect += ExpectimaxMoveNode(s | (0x2ULL << (60 - 4 * i)), depth - 1, prob * 0.1) * 0.1;
+int MaxRank(board_t s) {
+    int maxrank = 0;
+    while (s) {
+        maxrank = std::max(maxrank, int(s & 0xf));
+        s >>= 4;
     }
-    return expect / (double)emptyTiles;
+    return maxrank;
 }
 
-double ExpectimaxMoveNode(board_t s, unsigned depth, double prob) {
-    stateEvaled++;
+board_t AddRandomTile(board_t s) {
+    int pos;
+    do {
+        pos = rand() % 16;
+    } while ((s >> (4 * pos)) & 0xf);
+    return s | (1ULL << (rand() % 10 == 0) << (4 * pos));
+}
+
+void PrintBoard(board_t s) {
+    int board[16];
+    for (int i = 0; i < 16; ++i) {
+        board[i] = (s & 0xf);
+        if (board[i]) board[i] = 1 << board[i];
+        s >>= 4;
+    }
+    for (int i = 0; i < 16; ++i) {
+        if (i % 4 == 0) std::cout << '\n';
+        std::cout << std::setw(6) << board[i];
+    }
+    std::cout << '\n';
+}
+
+int BestMove(board_t s) {
+    int best = rand() % 4;
     double max = 0;
-    for (int i = 0; i < 4; i++) {
-        board_t newBoard = Move(s, i);
-        if (newBoard == s) continue;
-        max = std::max(max, ExpectimaxSpawnNode(newBoard, depth, prob));
+    for (int i = 0; i < 4; ++i) {
+        if (Move(s, i) == s) continue;
+        double value = ExpectimaxSearch(s, i);
+        if (value > max) {
+            max = value;
+            best = i;
+        }
     }
-    return max;
+    return best;
 }
-
-double ExpectimaxSearch(board_t s, int moveDir) {
-    board_t newBoard = Move(s, moveDir);
-    if (newBoard == s) return 0;
-    stateEvaled = 0;
-    unsigned currentDepth = MIN_DEPTH;
-    minProb = 1.0 / (double)(1 << (2 * currentDepth + 5));
-    double result = ExpectimaxSpawnNode(newBoard, currentDepth, 1);
-    unsigned long long minState = 1 << (3 * currentDepth + 5);
-    unsigned long long lastStates = 0;
-
-    while ((stateEvaled < minState) && (stateEvaled > lastStates)) {
-        currentDepth++;
-        minProb = 1.0 / (double)(1 << (2 * currentDepth + 5));
-        minState *= 2;
-        lastStates = stateEvaled;
-        stateEvaled = 0;
-        result = ExpectimaxSpawnNode(newBoard, currentDepth, 1);
-    }
-    return result;
-}
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-double EMSCRIPTEN_KEEPALIVE jsWork(row_t row1, row_t row2, row_t row3, row_t row4, int dir) {
-    return ExpectimaxSearch((board_t(row1) << 48) | (board_t(row2) << 32) | (board_t(row3) << 16) | board_t(row4), dir);
-}
-#ifdef __cplusplus
-}
-#endif
 
 int main() {
-    emscripten_run_script("onmessage=e=>postMessage(Module._jsWork(e.data.board[0],e.data.board[1],e.data.board[2],e.data.board[3],e.data.dir))");
+    srand(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+    int rate[5] = {0, 0, 0, 0, 0};
+    for (int i = 0; i < 100; i++) {
+        board_t board;
+        board_t nextBoard = AddRandomTile(0);
+        int rank = 0;
+        bool gameOver = false;
+        while (!gameOver) {
+            board = AddRandomTile(nextBoard);
+            int newRank = MaxRank(board);
+            if (newRank > rank) {
+                std::cout << '\r' << (1 << newRank);
+                rank = newRank;
+            }
+            nextBoard = Move(board, BestMove(board));
+            gameOver = (nextBoard == board); 
+        }
+        for (int j = 11; j <= rank; j++) rate[j - 11]++;
+        std::cout << '\n';
+    }
+    std::ofstream fout("benchmark.txt");
+    for (int i = 0; i < 5; i++) fout << '|' << std::setw(6) << (1 << (i + 11));
+    fout << "|\n|------|------|------|------|------|\n";
+    for (int i = 0; i < 5; i++) fout << '|' << std::setw(6) << rate[i];
+    fout << "|\n";
 }
