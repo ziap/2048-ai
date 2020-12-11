@@ -62,6 +62,7 @@ int main() {
             board = AddRandomTile(nextBoard);
             int newRank = MaxRank(board);
             if (newRank > rank) {
+                std::cout.flush();
                 std::cout << '\r' << (1 << newRank);
                 rank = newRank;
             }
