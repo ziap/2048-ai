@@ -31,11 +31,10 @@ int MaxRank(board_t s) {
 }
 
 board_t AddRandomTile(board_t s) {
-    int pos;
-    do {
-        pos = rand() % 16;
-    } while ((s >> (4 * pos)) & 0xf);
-    return s | (1ULL << (rand() % 10 == 0) << (4 * pos));
+    int empty[16];
+    int numEmpty = 0;
+    for (int i = 0; i < 16; i++) if (!((s >> (4 * i)) & 0xf)) empty[numEmpty++] = 4 * i;
+    return s | (1 << (rand() % 10 == 0) << empty[rand() % numEmpty]);
 }
 
 void PrintBoard(board_t s) {
@@ -58,12 +57,16 @@ int main() {
     for (int i = 0; i < 4; ++i) td[i].moveDir = i;
     board = AddRandomTile(AddRandomTile(0));
     int moves = 0;
+    int maxTile = 0;
     auto start = std::chrono::high_resolution_clock::now();
     for (;;) {
         int best = rand() % 4;
         int max = 0;
         int i;
-        for (i = 0; i < 4; ++i) td[i].board = board;
+        for (i = 0; i < 4; ++i) {
+            td[i].board = board;
+            threadResult[i] = 0;
+        }
         for (i = 0; i < 4; ++i) pthread_create(&threads[i], NULL, threadSearch, (void*)(intptr_t)i);
         for (i = 0; i < 4; ++i) pthread_join(threads[i], NULL);
         for (i = 0; i < 4; ++i) {
@@ -76,8 +79,16 @@ int main() {
         if (newBoard == board) break;
         else board = AddRandomTile(newBoard);
         moves++;
+        int newMax = MaxRank(board);
+        if (newMax > maxTile) {
+            maxTile = newMax;
+            std::cout.flush();
+            std::cout << "\rProgress: " << (1 << maxTile);
+        }
     }
+    std::cout << '\n';
     PrintBoard(board);
-    auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - start).count();
-    std::cout << "------------------------\nDuration: " << elapsed << " seconds\nTotal moves: " << moves << "\naverage speed: " << moves / elapsed << " Moves per second\n";
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
+    std::cout << "------------------------\nDuration: " << (double)elapsed / 1000.0 << " seconds\nTotal moves: " << moves << "\naverage speed: " << (double)moves * 1000.0 / (double)elapsed << " Moves per second\n";
+    pthread_exit(NULL);
 }

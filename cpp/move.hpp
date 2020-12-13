@@ -13,7 +13,7 @@ class Move {
             for (int i = 3; i >= 0; --i) {
                 if (!line[i]) continue;
                 if (!merged && farthest < 3 && line[i] == line[farthest + 1]) {
-                    ++line[farthest + 1];
+                    line[farthest + 1] = (line[farthest + 1] + 1) & 0xf;
                     line[i] = 0;
                     merged = true;
                 }

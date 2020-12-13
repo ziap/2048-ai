@@ -1,7 +1,7 @@
 #include <emscripten.h>
 #include "search.hpp"
 
-Search search(1, 4.0, 47.0, 3.5, 11.0, 700.0, 270.0);
+Search search(2, 4.0, 47.0, 3.5, 11.0, 700.0, 270.0);
 
 #ifdef __cplusplus
 extern "C" {

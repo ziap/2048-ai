@@ -6,10 +6,10 @@
  This AI is an Expectimax search run in parallel on your browser without any back-end server or browser control, so you can even run it on a mobile device.
 
  The AI uses 4 web workers, each is a WebAssembly module compiled from C++ with Emscripten to perform the Expectimax search for each move available. The move with the highest result is chosen.
- Because the search is done in parallel and the workers use heavy optimizations like bitboard representation, lookup tables, the AI can search very deep in a short amount of time (default search depth is 3).
+ Because the search is done in parallel and the workers use heavy optimizations like bitboard representation, lookup tables, the AI can search very deep in a short amount of time (default search depth is 5).
 
 ## Performance
- The default search depth is 3, but you can increase to 7 or even 11. With the search depth of 3, the AI can easily reach 550 moves per second by pruning nodes with low chance and can get to 16384 47% of the time thanks to smart iterative deepening. With the search depth of 7, the AI runs at 20 moves per second and can get to 16384 95% of the time and even the 32768 tile 15% of the time, but because the AI runs on the web, it's better to use a limited search depth for less performance consumption, especially on mobile devices.
+ The default search depth is 3, but you can increase to 7 or even 11. With the search depth of 3, the AI can easily reach 1000-1200 moves per second by pruning nodes with low chance and can get to 16384 47% of the time thanks to smart iterative deepening. With the search depth of 7, the AI runs at 50 moves per second and can get to 16384 95% of the time and even the 32768 tile 15% of the time, but because the AI runs on the web, it usually run 2 times slower so it's better to use a limited search depth for less performance consumption, especially on mobile devices.
 
 ## Heuristic
  Heuristics not only increase the strength of the AI but also direct the AI into positions that can be evaluated faster, which'll increase the speed of the AI significantly. I came up with new heuristics for the evaluation function such as smoothness (making the board easier to merge), floating tiles (preventing flat boards),... but I can't tune the weights using mathematical optimization so I used the same heuristics in [this AI by Robert Xiao](https://github.com/nneonneo/2048-ai).
