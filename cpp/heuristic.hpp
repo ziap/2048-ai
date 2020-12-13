@@ -5,7 +5,7 @@ class Heuristic {
     void BuildTable(double SCORE_MONOTONICITY_POWER, double SCORE_MONOTONICITY_WEIGHT,
         double SCORE_SUM_POWER, double SCORE_SUM_WEIGHT,
         double SCORE_MERGES_WEIGHT, double SCORE_EMPTY_WEIGHT) {
-        const double SCORE_LOST_PENALTY = 200000.0f;
+        const double SCORE_LOST_PENALTY = 200000.0;
         for (unsigned row = 0; row < 65536; ++row) {
             unsigned line[4] = {
                 (row >>  0) & 0xf,

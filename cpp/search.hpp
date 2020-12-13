@@ -1,8 +1,7 @@
 #include <cmath>
 #include <algorithm>
-#include "moveTable.hpp"
-#include "revTable.hpp"
 #include "board.hpp"
+#include "move.hpp"
 #include "heuristic.hpp"
 
 class Search {
@@ -16,7 +15,7 @@ class Search {
     }
 
     double operator()(board_t s, int moveDir) {
-        board_t newBoard = Move(s, moveDir);
+        board_t newBoard = move(s, moveDir);
         if (newBoard == s) return 0;
         stateEvaled = 0;
         unsigned currentDepth = MIN_DEPTH;
@@ -37,6 +36,7 @@ class Search {
     
     private:
     Heuristic heuristic;
+    Move move;
     long long stateEvaled = 0;
     int MIN_DEPTH;
     double minProb;
@@ -46,7 +46,7 @@ class Search {
         int emptyTiles = CountEmpty(s);
         prob /= emptyTiles;
         double expect = 0.0;
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < 16; ++i) {
             unsigned val = (s >> (60 - 4 * i)) & 0xf;
             if (val != 0) continue;
             expect += ExpectimaxMoveNode(s | (0x1ULL << (60 - 4 * i)), depth - 1, prob * 0.9) * 0.9;
@@ -58,8 +58,8 @@ class Search {
     double ExpectimaxMoveNode(board_t s, unsigned depth, double prob) {
         stateEvaled++;
         double max = 0;
-        for (int i = 0; i < 4; i++) {
-            board_t newBoard = Move(s, i);
+        for (int i = 0; i < 4; ++i) {
+            board_t newBoard = move(s, i);
             if (newBoard == s) continue;
             max = std::max(max, ExpectimaxSpawnNode(newBoard, depth, prob));
         }

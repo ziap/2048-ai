@@ -7,7 +7,8 @@
 #include "search.hpp"
 
 board_t board;
-Search search(3, 4.0f, 47.0f, 3.5f, 11.0f, 700.0f, 270.0f);
+Search search(3, 4.0, 47.0, 3.5, 11.0, 700.0, 270.0);
+Move move;
 double threadResult[4];
 struct threadData {
     board_t board;
@@ -54,7 +55,7 @@ int main() {
     srand(std::chrono::high_resolution_clock::now().time_since_epoch().count());
     pthread_t threads[4];
     struct threadData td[4];
-    for (int i = 0; i < 4; i++) td[i].moveDir = i;
+    for (int i = 0; i < 4; ++i) td[i].moveDir = i;
     board = AddRandomTile(AddRandomTile(0));
     int moves = 0;
     auto start = std::chrono::high_resolution_clock::now();
@@ -62,16 +63,16 @@ int main() {
         int best = rand() % 4;
         int max = 0;
         int i;
-        for (i = 0; i < 4; i++) td[i].board = board;
-        for (i = 0; i < 4; i++) pthread_create(&threads[i], NULL, threadSearch, (void*)(intptr_t)i);
-        for (i = 0; i < 4; i++) pthread_join(threads[i], NULL);
-        for (i = 0; i < 4; i++) {
+        for (i = 0; i < 4; ++i) td[i].board = board;
+        for (i = 0; i < 4; ++i) pthread_create(&threads[i], NULL, threadSearch, (void*)(intptr_t)i);
+        for (i = 0; i < 4; ++i) pthread_join(threads[i], NULL);
+        for (i = 0; i < 4; ++i) {
             if (threadResult[i] > max) {
                 max = threadResult[i];
                 best = i;
             }
         };
-        board_t newBoard = Move(board, best);
+        board_t newBoard = move(board, best);
         if (newBoard == board) break;
         else board = AddRandomTile(newBoard);
         moves++;
