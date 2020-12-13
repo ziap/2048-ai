@@ -1,11 +1,13 @@
 #include <emscripten.h>
 #include "search.hpp"
 
+Search search(1, 4.0f, 47.0f, 3.5f, 11.0f, 700.0f, 270.0f);
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 double EMSCRIPTEN_KEEPALIVE jsWork(row_t row1, row_t row2, row_t row3, row_t row4, int dir) {
-    return ExpectimaxSearch((board_t(row1) << 48) | (board_t(row2) << 32) | (board_t(row3) << 16) | board_t(row4), dir);
+    return search((board_t(row1) << 48) | (board_t(row2) << 32) | (board_t(row3) << 16) | board_t(row4), dir);
 }
 #ifdef __cplusplus
 }

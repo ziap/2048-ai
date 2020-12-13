@@ -1,9 +1,24 @@
 #include <iostream>
+#include <pthread.h>
 #include <iomanip>
 #include <fstream>
 #include <random>
 #include <chrono>
 #include "search.hpp"
+
+board_t board;
+Search search(3, 4.0f, 47.0f, 3.5f, 11.0f, 700.0f, 270.0f);
+double threadResult[4];
+struct threadData {
+    board_t board;
+    int moveDir;
+};
+
+void *threadSearch(void *threadID) {
+    int tid = (intptr_t)threadID;
+    threadResult[tid] = search(board, tid);
+    pthread_exit(NULL);
+}
 
 int MaxRank(board_t s) {
     int maxrank = 0;
@@ -30,51 +45,38 @@ void PrintBoard(board_t s) {
         s >>= 4;
     }
     for (int i = 0; i < 16; ++i) {
-        if (i % 4 == 0) std::cout << '\n';
         std::cout << std::setw(6) << board[i];
+        if (i % 4 == 3) std::cout << '\n';
     }
-    std::cout << '\n';
-}
-
-int BestMove(board_t s) {
-    int best = rand() % 4;
-    double max = 0;
-    for (int i = 0; i < 4; ++i) {
-        if (Move(s, i) == s) continue;
-        double value = ExpectimaxSearch(s, i);
-        if (value > max) {
-            max = value;
-            best = i;
-        }
-    }
-    return best;
 }
 
 int main() {
     srand(std::chrono::high_resolution_clock::now().time_since_epoch().count());
-    int rate[5] = {0, 0, 0, 0, 0};
-    for (int i = 0; i < 100; i++) {
-        board_t board;
-        board_t nextBoard = AddRandomTile(0);
-        int rank = 0;
-        bool gameOver = false;
-        while (!gameOver) {
-            board = AddRandomTile(nextBoard);
-            int newRank = MaxRank(board);
-            if (newRank > rank) {
-                std::cout.flush();
-                std::cout << '\r' << (1 << newRank);
-                rank = newRank;
+    pthread_t threads[4];
+    struct threadData td[4];
+    for (int i = 0; i < 4; i++) td[i].moveDir = i;
+    board = AddRandomTile(AddRandomTile(0));
+    int moves = 0;
+    auto start = std::chrono::high_resolution_clock::now();
+    for (;;) {
+        int best = rand() % 4;
+        int max = 0;
+        int i;
+        for (i = 0; i < 4; i++) td[i].board = board;
+        for (i = 0; i < 4; i++) pthread_create(&threads[i], NULL, threadSearch, (void*)(intptr_t)i);
+        for (i = 0; i < 4; i++) pthread_join(threads[i], NULL);
+        for (i = 0; i < 4; i++) {
+            if (threadResult[i] > max) {
+                max = threadResult[i];
+                best = i;
             }
-            nextBoard = Move(board, BestMove(board));
-            gameOver = (nextBoard == board); 
-        }
-        for (int j = 11; j <= rank; j++) rate[j - 11]++;
-        std::cout << '\n';
+        };
+        board_t newBoard = Move(board, best);
+        if (newBoard == board) break;
+        else board = AddRandomTile(newBoard);
+        moves++;
     }
-    std::ofstream fout("benchmark.txt");
-    for (int i = 0; i < 5; i++) fout << '|' << std::setw(6) << (1 << (i + 11));
-    fout << "|\n|------|------|------|------|------|\n";
-    for (int i = 0; i < 5; i++) fout << '|' << std::setw(6) << rate[i];
-    fout << "|\n";
+    PrintBoard(board);
+    auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - start).count();
+    std::cout << "------------------------\nDuration: " << elapsed << " seconds\nTotal moves: " << moves << "\naverage speed: " << moves / elapsed << " Moves per second\n";
 }
