@@ -42,7 +42,7 @@ function currentState() {
     for (var i = 0; i < 4; ++i) {
         for (var j = 0; j < 4; ++j) {
             var tile = game.grid.cells[j][i];
-            if (tile) result[i] = result[i] | (Math.log2(tile.value) & 0xf) << (12 - 4 * j));
+            if (tile) result[i] = result[i] | ((Math.log2(tile.value) & 0xf) << (12 - 4 * j));
         }
     }
     return result;
