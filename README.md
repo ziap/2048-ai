@@ -8,12 +8,9 @@
  The AI uses 4 web workers, each is a WebAssembly module compiled from C++ with Emscripten to perform the Expectimax search for each move available. The move with the highest result is chosen.
  Because the search is done in parallel and the workers use heavy optimizations like bitboard representation, lookup tables, the AI can search very deep in a short amount of time (default search depth is 5).
 
-## Performance
- With the search depth of 3 ply, the AI can easily reach 500-800 moves per second by pruning nodes with low chance and can get to 16384 40% of the time thanks to smart iterative deepening. With the search depth of 7 ply, the AI runs at 20-50 moves per second and can get to 16384 95% of the time and even the 32768 tile 15% of the time, the web version of the AI use the search depth of 5 instead of 7 for better performance.
-
 ## Benchmark (Console application)
  Result from running the AI on an Intel® Core™ i5-8300H Processor
- | Limit | % 32768 | % 16384 | % 8192 | % 4096 | Score | Moves/game | Moves/s | s/game | Games |
+ | Initial Depth | % 32768 | % 16384 | % 8192 | % 4096 | Score | Moves/game | Moves/s | s/game | Games |
  |------:|:-------:|:-------:|:------:|:------:|:-----:|:----------:|:-------:|:------:|:-----:|
  | 3 ply | 0.5 | 40.5 | 86 | 97.5 | 210606 | 8342 | 939 | 9 | 200 |
  | 5 ply | 2 | 64 | 94 | 100 | 269263 | 10452 | 136 | 81 | 50 |
