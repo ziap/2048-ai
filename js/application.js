@@ -42,7 +42,7 @@ function currentState() {
     for (var i = 0; i < 4; ++i) {
         for (var j = 0; j < 4; ++j) {
             var tile = game.grid.cells[j][i];
-            if (tile) result[i] = result[i] | (Math.min(Math.log2(tile.value), 0xf) << (12 - 4 * j));
+            if (tile) result[i] = result[i] | (Math.log2(tile.value) & 0xf) << (12 - 4 * j));
         }
     }
     return result;
@@ -53,12 +53,7 @@ function step() {
     bestResult = 0;
     working = 4;
     bestMove = 0 | 4 * Math.random();
-    for (var i = 0; i < 4; ++i) {
-        workers[i].postMessage({
-            board: board,
-            dir: i,
-        })
-    }
+    for (var i = 0; i < 4; ++i) workers[i].postMessage({board: board, dir: i});
 }
 
 function initAI() {
