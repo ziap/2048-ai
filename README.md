@@ -38,8 +38,8 @@ g++ cpp/2048.cpp -o 2048 -O3 -std=c++17
 
  Example:
 ```sh
-./2048 -d 3 -i 1 #Playing 1 game with search depth of 3 (7 ply)
-./2048 -d 1 -i 100 #Playing 100 games with search depth of 1 (3 ply)
+./2048 -d 3 -i 1 #Play 1 game with search depth of 3 (7 ply)
+./2048 -d 1 -i 100 #Play 100 games with search depth of 1 (3 ply)
 ```
 
 ## Modify web version
