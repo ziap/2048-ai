@@ -10,11 +10,11 @@
 
 ## Benchmark (Console application)
  Result from running the AI on an Intel® Core™ i5-8300H Processor
- | Depth | 32768 | 16384 | 8192 | 4096 | Score | Moves/game | Moves/s | s/game | Games |
+ | Depth | 32768 | 16384 | 8192 | 4096 | Score | Moves/s | s/game | Games |
  |------:|-------:|-------:|----:|-----:|----:|----------:|-------:|------:|-----:|
- | 3 ply | 0.5% | 40.5% | 86% | 97.5% | 210606 | 8342 | 939 | 9 | 200 |
- | 5 ply | 2% | 64% | 94% | 100% | 269263 | 10452 | 136 | 81 | 50 |
- | 7 ply | 0% | 100% | 100% | 100% | 332382 | 12716 | 25 | 493 | 10 |
+ | 3 ply | 0.5% | 40.5% | 86% | 97.5% | 210606 | 939 | 9 | 200 |
+ | 5 ply | 2% | 64% | 94% | 100% | 269263 | 136 | 81 | 50 |
+ | 7 ply | 0% | 100% | 100% | 100% | 332382 | 25 | 493 | 10 |
 
 ## Heuristic
  Heuristics not only increase the strength of the AI but also direct the AI into positions that can be evaluated faster, which'll increase the speed of the AI significantly. I came up with new heuristics for the evaluation function such as smoothness (making the board easier to merge), floating tiles (preventing flat boards),... but I can't tune the weights using mathematical optimization so I used the same heuristics in [this AI by Robert Xiao](https://github.com/nneonneo/2048-ai).
