@@ -36,7 +36,7 @@ g++ cpp/2048.cpp -o 2048 -O3 -std=c++17
 ```
 
 ## Modify web version
- If you want to edit the search parameters or change the evaluation function, you need to set up Emscripten first, you can download it [here](https://emscripten.org/docs/getting_started/downloads.html), make sure to add Emscripten to PATH. After modifying the source code, you can compile using the batch file (windows) or using this command:
+ If you want to edit the search parameters or change the evaluation function, you need to set up Emscripten first, you can download it [here](https://emscripten.org/docs/getting_started/downloads.html), make sure to add Emscripten to PATH. After modifying the source code, you can compile using compile.bat (windows), compile.sh (linux) or this command:
 ```sh
 em++ cpp/2048-web.cpp -o js/ai.js -s WASM=1 -O3 -s NO_EXIT_RUNTIME=1
 ```
