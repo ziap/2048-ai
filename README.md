@@ -12,16 +12,11 @@
  With the search depth of 3 ply, the AI can easily reach 500-800 moves per second by pruning nodes with low chance and can get to 16384 40% of the time thanks to smart iterative deepening. With the search depth of 7 ply, the AI runs at 20-50 moves per second and can get to 16384 95% of the time and even the 32768 tile 15% of the time, the web version of the AI use the search depth of 5 instead of 7 for better performance.
 
 ## Benchmark (Console application)
- With 3 ply search the AI can produce this result after 200 games (Intel® Core™ i5-8300H Processor):
- | % 32768 | % 16384 | % 8192 | % 4096 |
- |:-------:|:-------:|:------:|:------:|
- | 0.5 | 40.5 | 86 | 97.5 |
-
- Average results
- | Score | Moves/game | Moves/s | s/game |
- |:-----:|:----------:|:-------:|:------:|
- | 210606 | 8342 | 939 | 9 | 
-
+ Result from running the AI on an Intel® Core™ i5-8300H Processor
+ | Limit | % 32768 | % 16384 | % 8192 | % 4096 | Score | Moves/game | Moves/s | s/game | Games |
+ |------:|:-------:|:-------:|:------:|:------:|:-----:|:----------:|:-------:|:------:|:-----:|
+ | 3 ply | 0.5 | 40.5 | 86 | 97.5 | 210606 | 8342 | 939 | 9 | 200 |
+ | 5 ply | 2 | 64 | 94 | 100 | 269263 | 10452 | 136 | 81 | 50 |
 
 ## Heuristic
  Heuristics not only increase the strength of the AI but also direct the AI into positions that can be evaluated faster, which'll increase the speed of the AI significantly. I came up with new heuristics for the evaluation function such as smoothness (making the board easier to merge), floating tiles (preventing flat boards),... but I can't tune the weights using mathematical optimization so I used the same heuristics in [this AI by Robert Xiao](https://github.com/nneonneo/2048-ai).
