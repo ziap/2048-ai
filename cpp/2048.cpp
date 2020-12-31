@@ -92,8 +92,8 @@ int main(int argc, char* argv[]) {
             if (newMax > maxTile) {
                 maxTile = newMax;
                 if (maxTile >= 11) bigTiles[maxTile - 11]++;
+                std::cout << "Progress: " << (1 << maxTile) << '\r';
                 std::cout.flush();
-                std::cout << "\rProgress: " << (1 << maxTile);
             }
         }
         std::cout << '\n';
