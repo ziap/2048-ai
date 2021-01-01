@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
         std::cout << '\n';
         PrintBoard(board);
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
-        std::cout << "------------------------\nDuration: " << (double)elapsed / 1000.0 << " seconds\nTotal moves: " << moves << "\naverage speed: " << (double)moves * 1000.0 / (double)elapsed << " Moves per second\n";
+        std::cout << "------------------------\nDuration: " << (double)elapsed / 1000.0 << " seconds\nTotal moves: " << moves << "\nAverage speed: " << (double)moves * 1000.0 / (double)elapsed << " moves per second\n";
         int score = 0;
         while(board) {
             int rank = board & 0xf;
