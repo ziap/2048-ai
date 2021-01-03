@@ -6,15 +6,10 @@
  This AI is an Expectimax search run in parallel on your browser without any back-end server or browser control, so you can even run it on a mobile device.
 
  The AI uses 4 web workers, each is a WebAssembly module compiled from C++ with Emscripten to perform the Expectimax search for each move available. The move with the highest result is chosen.
- Because the search is done in parallel and the workers use heavy optimizations like bitboard representation, lookup tables, the AI can search very deep in a short amount of time (default search depth is 5).
+ Because the search is done in parallel and the workers use heavy optimizations like bitboard representation, lookup tables, the AI can search very deep in a short amount of time (default search depth is 7).
 
 ## Benchmark (Console application)
- Result from running the AI on an Intel® Core™ i5-8300H Processor
- | depth | 32768 | 16384 | 8192 | 4096 | score | moves/s | s/game | games |
- |-------|-------|-------|------|------|-------|---------|--------|-------|
- | 3 ply | 0.5% | 40.5% | 86% | 97.5% | 210606 | 939 | 9 | 200 |
- | 5 ply | 2% | 64% | 94% | 100% | 269263 | 136 | 81 | 50 |
- | 7 ply | 0% | 100% | 100% | 100% | 332382 | 25 | 493 | 10 |
+ The AI need some more work before benchmarking.
 
 ## Heuristic
  Heuristics not only increase the strength of the AI but also direct the AI into positions that can be evaluated faster, which'll increase the speed of the AI significantly. I came up with new heuristics for the evaluation function such as smoothness (making the board easier to merge), floating tiles (preventing flat boards),... but I can't tune the weights using mathematical optimization so I used the same heuristics in [this AI by Robert Xiao](https://github.com/nneonneo/2048-ai).
@@ -45,6 +40,11 @@ em++ cpp/2048-web.cpp -o js/ai.js -s WASM=1 -O3 -s NO_EXIT_RUNTIME=1
 python -m http.server 8080
 ```
  and access the AI via http://localhost:8080. You can change 8080 to any port number.
+
+## Protential Improvements
+ - Fix bugs in search algorithm.
+ - Retune evaluation function.
+ - Use TD Learning to train a n-tuple network for evaluation.
 
 # License
  This app is licensed under the MIT license.

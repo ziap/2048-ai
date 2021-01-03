@@ -1,11 +1,11 @@
 class Heuristic {
     private:
-    double heurTable[65536];
+    float heurTable[65536];
     public:
-    void BuildTable(double SCORE_MONOTONICITY_POWER, double SCORE_MONOTONICITY_WEIGHT,
-        double SCORE_SUM_POWER, double SCORE_SUM_WEIGHT,
-        double SCORE_MERGES_WEIGHT, double SCORE_EMPTY_WEIGHT) {
-        const double SCORE_LOST_PENALTY = 200000.0;
+    void BuildTable(float SCORE_MONOTONICITY_POWER, float SCORE_MONOTONICITY_WEIGHT,
+        float SCORE_SUM_POWER, float SCORE_SUM_WEIGHT,
+        float SCORE_MERGES_WEIGHT, float SCORE_EMPTY_WEIGHT) {
+        const float SCORE_LOST_PENALTY = 200000.0;
         for (unsigned row = 0; row < 65536; ++row) {
             unsigned line[4] = {
                 (row >>  0) & 0xf,
@@ -13,7 +13,7 @@ class Heuristic {
                 (row >>  8) & 0xf,
                 (row >> 12) & 0xf
             };
-            double sum = 0;
+            float sum = 0;
             int empty = 0;
             int merges = 0;
 
@@ -22,24 +22,20 @@ class Heuristic {
             for (int i = 0; i < 4; ++i) {
                 int rank = line[i];
                 sum += pow(rank, SCORE_SUM_POWER);
-                if (rank == 0) {
-                    empty++;
-                } else {
-                    if (prev == rank) {
-                        counter++;
-                    } else if (counter > 0) {
+                if (!rank) ++empty;
+                else {
+                    if (prev == rank) ++counter;
+                    else if (counter > 0) {
                         merges += 1 + counter;
                         counter = 0;
                     }
                     prev = rank;
                 }
             }
-            if (counter > 0) {
-                merges += 1 + counter;
-            }
+            if (counter > 0) merges += 1 + counter;
 
-            double monotonicity_left = 0;
-            double monotonicity_right = 0;
+            float monotonicity_left = 0;
+            float monotonicity_right = 0;
             for (int i = 1; i < 4; ++i) {
                 if (line[i-1] > line[i]) {
                     monotonicity_left += pow(line[i-1], SCORE_MONOTONICITY_POWER) - pow(line[i], SCORE_MONOTONICITY_POWER);
@@ -55,7 +51,7 @@ class Heuristic {
                 SCORE_SUM_WEIGHT * sum;
         }
     }
-    double ScoreHeuristic(board_t board) {
+    float ScoreHeuristic(board_t board) {
         return
             heurTable[(board >> 48) & 0xffff] +
             heurTable[(board >> 32) & 0xffff] +
