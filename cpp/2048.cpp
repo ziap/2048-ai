@@ -39,7 +39,7 @@ board_t AddRandomTile(board_t s) {
 }
 
 std::string Progress(board_t s) {
-    int WIDTH = 40;
+    int WIDTH = 25;
     int sum = 0;
     for (board_t tmp = s; tmp; tmp >>=4) sum += (1 << (tmp & 0xf));
     int max = (1 << MaxRank(s));
