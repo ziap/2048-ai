@@ -5,28 +5,24 @@ class Hash
 {
     public:
     Hash() {
-        std::mt19937 mt(3141592654);
+        std::mt19937 mt(std::chrono::high_resolution_clock::now().time_since_epoch().count());
         std::uniform_int_distribution<int> distribution(0, 0x3fffff);
         for (int i = 0; i < 256; i++) zMap[i] = distribution(mt);
     }
-    int Lookup(board_t board, float prob, int depth, float* score) {
+    int Lookup(board_t board, int depth, float* score) {
         Entry entry = entries[ZHash(board)];
-        if (entry.board == board && entry.prob >= prob && entry.depth >= depth) {
+        if (entry.board == board && entry.depth >= depth) {
             *score = entry.score;
-            return entry.moves;
+            return std::pow(entry.moves, (float)depth / (float)entry.depth);
         }
         return 0;
     }
-    void Update(board_t board, float prob, int depth, float score, int moves) {
+    void Update(board_t board, int depth, float score, int moves) {
         Entry& entry = entries[ZHash(board)];
         entry.board = board;
-        entry.prob = prob;
         entry.depth = depth;
         entry.score = score;
         entry.moves = moves;
-    }
-    void Clear() {
-        for (int i = 0; i < 0x400000; ++i) entries[i].board = 0;
     }
     private:
     struct Entry {

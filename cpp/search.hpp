@@ -22,17 +22,17 @@ class Search {
         if (newBoard == s) return 0;
         stateEvaled = 0;
         unsigned currentDepth = MIN_DEPTH;
-        minProb = 1.0 / (1 << (2 * currentDepth + 5));
-        float result = ExpectimaxSpawnNode(newBoard, currentDepth, 1);
-        unsigned long long minState = 1 << (3 * currentDepth + 5);
-        unsigned long long lastStates = 0;
+        minProb = 1.0f / float(1 << (2 * currentDepth + 5));
+        float result = ExpectimaxSpawnNode(newBoard, currentDepth, 1.0f);
+        int minState = 1 << (3 * currentDepth + 5);
+        int lastStates = 0;
         while ((stateEvaled < minState) && (stateEvaled > lastStates)) {
             ++currentDepth;
-            minProb = 1.0 / (1 << (2 * currentDepth + 5));
+            minProb = 1.0f / float(1 << (2 * currentDepth + 5));
             minState *= 2;
             lastStates = stateEvaled;
             stateEvaled = 0;
-            result = ExpectimaxSpawnNode(newBoard, currentDepth, 1);
+            result = ExpectimaxSpawnNode(newBoard, currentDepth, 1.0f);
         }
         return result;
     }
@@ -48,10 +48,10 @@ class Search {
         if (depth <= 0 || prob < minProb) return heuristic.ScoreHeuristic(s) + heuristic.ScoreHeuristic(Transpose(s));
         float expect = 0.0;
         int currentEvaled = stateEvaled;
-        stateEvaled += hash.Lookup(s, prob, depth, &expect);
+        stateEvaled += hash.Lookup(s, depth, &expect);
         if (stateEvaled > currentEvaled) return expect;
         expect = 0.0f;
-        int emptyTiles = CountEmpty(s);
+        float emptyTiles = CountEmpty(s);
         float prob2 = prob * .9 / emptyTiles;
         float prob4 = prob * .1 / emptyTiles;
         board_t tmp = s;
@@ -62,7 +62,7 @@ class Search {
             }
             tmp >>= 4;
         }
-        hash.Update(s, prob, depth, expect / emptyTiles, stateEvaled - currentEvaled);
+        hash.Update(s, depth, expect / emptyTiles, stateEvaled - currentEvaled);
         return expect / emptyTiles;
     }
 

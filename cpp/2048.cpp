@@ -38,17 +38,6 @@ board_t AddRandomTile(board_t s) {
     return s | (tile << empty[rand() % numEmpty]);
 }
 
-void PrintBoard(board_t s) {
-    int board[16];
-    int i = 0;
-    for (;s;s>>=4) {
-        i++;
-        if (s & 0xf) std::cout << std::setw(6) << (1 << (s & 0xf));
-        else std::cout << "      ";
-        if (!(i % 4)) std::cout << '\n';
-    }
-}
-
 int main(int argc, char* argv[]) {
     srand(std::chrono::high_resolution_clock::now().time_since_epoch().count());
     int depth = 1, iterations = 1;
@@ -70,7 +59,6 @@ int main(int argc, char* argv[]) {
         std::cout << "Running game " << game << "/" << iterations <<'\n';
         gen4tiles = 0;
         board = AddRandomTile(AddRandomTile(0));
-        hash.Clear();
         int moves = 0;
         int maxTile = 0;
         auto start = std::chrono::high_resolution_clock::now();
@@ -92,14 +80,14 @@ int main(int argc, char* argv[]) {
             if (newMax > maxTile) {
                 maxTile = newMax;
                 if (maxTile >= 11) ++bigTiles[maxTile - 11];
-                std::cout << "Progress: " << (1 << maxTile) << '\r';
+                std::cout << "Progress: " << (1 << maxTile);
+                if (maxTile >= 11) std::cout << " (" << float(bigTiles[maxTile - 11] * 100) / (float)iterations << "%)";
+                std::cout << "                              \r";
                 std::cout.flush();
             }
         }
         std::cout << '\n';
-        PrintBoard(board);
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
-        std::cout << "------------------------\nDuration: " << (float)elapsed / 1000.0 << " seconds\nTotal moves: " << moves << "\nAverage speed: " << (float)moves * 1000.0 / elapsed << " moves per second\n";
         int score = 0;
         while(board) {
             int rank = board & 0xf;
@@ -109,12 +97,12 @@ int main(int argc, char* argv[]) {
         resultScore.push_back(score - 4 * gen4tiles);
         resultMoves.push_back(moves);
         resultTime.push_back((float)elapsed / 1000.0);
-        resultSpeed.push_back((float)moves * 1000.0 / elapsed);
+        resultSpeed.push_back((float)moves * 1000.0 / (float)elapsed);
     }
     std::ofstream fout("result.csv");
     for (int i = 0; i < 5; ++i) fout << (1 << (i + 11)) << ',';
     fout << '\n';
-    for (int i = 0; i < 5; ++i) fout << (float)bigTiles[i] * 100.0 / iterations << "%,";
+    for (int i = 0; i < 5; ++i) fout << (float)bigTiles[i] * 100.0 / (float)iterations << "%,";
     fout << "\n,\nGame,";
     for (int i = 1; i <= iterations; ++i) fout << i << ',';
     fout << "\nScore,";
