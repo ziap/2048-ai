@@ -38,11 +38,27 @@ board_t AddRandomTile(board_t s) {
     return s | (tile << empty[rand() % numEmpty]);
 }
 
+std::string Progress(board_t s) {
+    int sum = 0;
+    for (board_t tmp = s; tmp; tmp >>=4) sum += (1 << (tmp & 0xf));
+    int max = (1 << MaxRank(s));
+    sum -= max;
+    int len = std::min(20, 20 * sum / max);
+    std::string bar;
+    bar.push_back('[');
+    for (int i = 0; i < len; i++) bar.push_back(219);
+    for (int i = len; i < 20; i++) bar.push_back(177);
+    bar.push_back(']');
+    return bar;
+}
+
 int main(int argc, char* argv[]) {
+    std::ios_base::sync_with_stdio(false);
     srand(std::chrono::high_resolution_clock::now().time_since_epoch().count());
     int depth = 1, iterations = 1;
+    bool detailed = false;
     int c;
-    while ((c = getopt(argc, argv, "d:i:")) != -1) {
+    while ((c = getopt(argc, argv, "d:i:p")) != -1) {
         switch (c)
         {
         case 'd':
@@ -52,10 +68,14 @@ int main(int argc, char* argv[]) {
         case 'i':
             iterations = atoi(optarg);
             break;
+        case 'p':
+            detailed = true;
+            break;
         }
     }
     Search search(depth, 4.0, 47.0, 3.5, 11.0, 700.0, 270.0);
     for (int game = 1; game <= iterations; ++game) {
+        std::string progress;
         std::cout << "Running game " << game << "/" << iterations <<'\n';
         gen4tiles = 0;
         board = AddRandomTile(AddRandomTile(0));
@@ -80,10 +100,18 @@ int main(int argc, char* argv[]) {
             if (newMax > maxTile) {
                 maxTile = newMax;
                 if (maxTile >= 11) ++bigTiles[maxTile - 11];
-                std::cout << "Progress: " << (1 << maxTile);
-                if (maxTile >= 11) std::cout << " (" << float(bigTiles[maxTile - 11] * 100) / (float)iterations << "%)";
-                std::cout << "                              \r";
-                std::cout.flush();
+                if (!detailed) {
+                    std::cout << "Progress: " << (1 << maxTile) << '\r';
+                    std::cout.flush();
+                }
+            }
+            if (detailed) {
+                std::string newProgress = Progress(board);
+                if (progress != newProgress) {
+                    progress = newProgress;
+                    std::cout << "Progress:" << std::setw(6) << (1 << maxTile) << ' ' << progress << ' ' << (1 << (maxTile + 1)) << '\r';
+                    std::cout.flush();
+                }
             }
         }
         std::cout << '\n';
