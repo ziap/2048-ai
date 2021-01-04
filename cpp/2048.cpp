@@ -39,15 +39,21 @@ board_t AddRandomTile(board_t s) {
 }
 
 std::string Progress(board_t s) {
+    int WIDTH = 40;
     int sum = 0;
     for (board_t tmp = s; tmp; tmp >>=4) sum += (1 << (tmp & 0xf));
     int max = (1 << MaxRank(s));
     sum -= max;
-    int len = std::min(20, 20 * sum / max);
+    float progress = std::min(std::max((float)sum / (float)max, 0.0f), 1.0f);
+    int wholeWidth = progress * WIDTH;
+    std::string parts[8] = {" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉"};
+    std::string partChar = parts[int(fmod(progress * WIDTH, 1.0) * 8.0)];
+    if ((WIDTH - wholeWidth - 1) < 0) partChar = "";
     std::string bar;
     bar.push_back('[');
-    for (int i = 0; i < len; i++) bar.push_back(219);
-    for (int i = len; i < 20; i++) bar.push_back(177);
+    for (int i = 0; i < wholeWidth; i++) bar += "█";
+    bar += partChar;
+    for (int i = 0; i < WIDTH - wholeWidth - 1; i++) bar.push_back(' ');
     bar.push_back(']');
     return bar;
 }
@@ -75,7 +81,6 @@ int main(int argc, char* argv[]) {
     }
     Search search(depth, 4.0, 47.0, 3.5, 11.0, 700.0, 270.0);
     for (int game = 1; game <= iterations; ++game) {
-        std::string progress;
         std::cout << "Running game " << game << "/" << iterations <<'\n';
         gen4tiles = 0;
         board = AddRandomTile(AddRandomTile(0));
@@ -106,12 +111,8 @@ int main(int argc, char* argv[]) {
                 }
             }
             if (detailed) {
-                std::string newProgress = Progress(board);
-                if (progress != newProgress) {
-                    progress = newProgress;
-                    std::cout << "Progress:" << std::setw(6) << (1 << maxTile) << ' ' << progress << ' ' << (1 << (maxTile + 1)) << '\r';
-                    std::cout.flush();
-                }
+                std::cout << "Progress:" << std::setw(6) << (1 << maxTile) << ' ' << Progress(board) << ' ' << (1 << (maxTile + 1)) << '\r';
+                std::cout.flush();
             }
         }
         std::cout << '\n';

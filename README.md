@@ -43,7 +43,7 @@ make
  Run parameters:
  + **-d [Depth]** - The search depth (1->4). Default: 1, every depth is 2 ply + initial call so 1 is 3 ply and 3 is 7 ply.
  + **-i [Iterations]** - Number of games to play for batch testing purpose. Default: 1.
- + **-p** -Show detailed progress of the game.
+ + **-p** -Show detailed progress of the game. **Could reduce performance!**
 
  Example:
 ```sh
