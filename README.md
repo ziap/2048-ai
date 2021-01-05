@@ -33,7 +33,7 @@
  If you use Windows open Developer Command Prompt for Visual Studio and use the command **nmake** to compile the code or **nmake web** to compile the web version.
 
 ### Console application
- The console application has almost no visualization of the game and should be used only for benchmarking purpose. See the web version [below]("#web-version").
+ The console application has almost no visualization of the game and should be used only for benchmarking purpose. See the web version [below](#web-version).
 
  How to build:
 ```sh
@@ -53,7 +53,7 @@ make
  After running the AI you can see the result in result.csv with any spreadsheet viewer (for example MS Excel).
 
 ### Web version
- You can go to [this web page]("https://ziap.github.io/2048-wasm") to run the AI.
+ You can go to [this web page](https://ziap.github.io/2048-wasm) to run the AI.
 
  If you want to edit the search parameters or change the evaluation function, you need to set up Emscripten first, you can download it [here](https://emscripten.org/docs/getting_started/downloads.html).
  
