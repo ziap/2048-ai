@@ -19,12 +19,6 @@ std::vector<int> resultMoves;
 std::vector<float> resultTime;
 std::vector<float> resultSpeed;
 
-int MaxRank(board_t s) {
-    int maxrank = 0;
-    for (;s;s>>=4) maxrank = std::max(maxrank, int(s & 0xf));
-    return maxrank;
-}
-
 board_t AddRandomTile(board_t s) {
     int empty[16];
     int numEmpty = 0;

@@ -27,7 +27,6 @@ class Hash
     private:
     struct Entry {
         unsigned long long board;
-        float prob;
         float score;
         int depth;
         int moves;

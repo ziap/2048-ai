@@ -22,6 +22,8 @@ class Search {
         if (newBoard == s) return 0;
         stateEvaled = 0;
         unsigned currentDepth = MIN_DEPTH;
+        int diff = CountDistinct(s);
+        if (diff >= 12) currentDepth += (1 << (diff - 12));
         minProb = 1.0f / float(1 << (2 * currentDepth + 5));
         float result = ExpectimaxSpawnNode(newBoard, currentDepth, 1.0f);
         int minState = 1 << (3 * currentDepth + 5);
@@ -61,7 +63,7 @@ class Search {
                 expect += ExpectimaxMoveNode(s | (tile2 << 1), depth - 1, prob4) * .1;
             }
             tmp >>= 4;
-        }
+        }   
         hash.Update(s, depth, expect / emptyTiles, stateEvaled - currentEvaled);
         return expect / emptyTiles;
     }

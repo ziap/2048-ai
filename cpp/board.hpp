@@ -1,27 +1,41 @@
 typedef unsigned long long board_t;
 typedef unsigned short row_t;
 
-int CountEmpty(board_t x)
-{
-    x |= (x >> 2) & 0x3333333333333333ULL;
-    x |= (x >> 1);
-    x = ~x & 0x1111111111111111ULL;
-    x += x >> 32;
-    x += x >> 16;
-    x += x >>  8;
-    x += x >>  4;
-    return x & 0xf;
+int MaxRank(board_t s) {
+    int maxrank = 0;
+    for (;s;s>>=4) maxrank = std::max(maxrank, int(s & 0xf));
+    return maxrank;
 }
 
-board_t Transpose(board_t s) {
-    board_t a1 = s & 0xF0F00F0FF0F00F0FULL;
-    board_t a2 = s & 0x0000F0F00000F0F0ULL;
-    board_t a3 = s & 0x0F0F00000F0F0000ULL;
-    board_t a = a1 | (a2 << 12) | (a3 >> 12);
-    board_t b1 = a & 0xFF00FF0000FF00FFULL;
-    board_t b2 = a & 0x00FF00FF00000000ULL;
-    board_t b3 = a & 0x00000000FF00FF00ULL;
-    return b1 | (b2 >> 24) | (b3 << 24);
+int CountDistinct(board_t b) {
+    int mask = 0;
+    while (b) {
+        mask |= 1 << (b & 0xf);
+        b >>= 4;
+    }
+    int count = 0;
+    for (int i = 1; i < 16; i++) if (mask >> i & 1) {
+        count++;
+    }
+    return count;
+}
+
+int CountEmpty(board_t b) {
+    b = ~b;
+    b &= b >> 2;
+    b &= b >> 1;
+    b &= 0x1111111111111111ull;
+    b = (b * 0x1111111111111111ull) >> 60;
+    return b;
+}
+
+board_t Transpose(board_t x) {
+    board_t t;
+    t = (x ^ (x >> 12)) & 0x0000f0f00000f0f0ull;
+    x ^= t ^ (t << 12);
+    t = (x ^ (x >> 24)) & 0x00000000ff00ff00ull;
+    x ^= t ^ (t << 24);
+    return x;
 }
 
 row_t ReverseRow(row_t row) {

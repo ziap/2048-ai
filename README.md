@@ -9,11 +9,12 @@
  Because the search is done in parallel and the workers use heavy optimizations like bitboard representation, lookup tables, the AI can search very deep in a short amount of time (default search depth is 7).
 
 ## Benchmark (Console application, Intel® Core™ i5-8300H Processor)
- | Depth  | Games | Score  | % 32768 | % 16384 | % 8192 | % 4096 | Time | Moves/s |
+ Benchmark pending
+ <!---| Depth  | Games | Score  | % 32768 | % 16384 | % 8192 | % 4096 | Time | Moves/s |
  |--------|-------|--------|---------|---------|--------|--------|------|---------|
  | 3 ply  | 1000  | 216159 | 0.8     | 43      | 85.4   | 98.1   | 3s   | 2343    |
  | 5 ply  | 300   | 283720 | 2       | 66.33   | 96     | 100    | 17s  | 648     |
- | 7 ply  | 100   | 353368 | 12      | 85      | 98     | 100    | 87s  | 158     |
+ | 7 ply  | 100   | 353368 | 12      | 85      | 98     | 100    | 87s  | 158     |--->
 
 ## Features
  - 64-bit Bitboard representation.
