@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <cmath>
+
 typedef unsigned long long board_t;
 typedef unsigned short row_t;
 
@@ -7,18 +10,20 @@ int MaxRank(board_t s) {
     return maxrank;
 }
 
-int CountDistinct(board_t b) {
-    int mask = 0;
-    while (b) {
-        mask |= 1 << (b & 0xf);
-        b >>= 4;
-    }
-    int count = 0;
-    for (int i = 1; i < 16; i++) if (mask >> i & 1) {
-        count++;
-    }
-    return count;
-}
+// int CountDistinct(board_t b) {
+//     int mask = 0;
+//     while (b) {
+//         mask |= 1 << (b & 0xf);
+//         b >>= 4;
+//     }
+//     mask >>= 1;
+//     int count = 0;
+//     while (mask) {
+//         mask &= mask - 1;
+//         count++;
+//     }
+//     return count;
+// }
 
 int CountEmpty(board_t b) {
     b = ~b;

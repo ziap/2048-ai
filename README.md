@@ -9,12 +9,11 @@
  Because the search is done in parallel and the workers use heavy optimizations like bitboard representation, lookup tables, the AI can search very deep in a short amount of time (default search depth is 7).
 
 ## Benchmark (Console application, Intel® Core™ i5-8300H Processor)
- Benchmark pending
- <!---| Depth  | Games | Score  | % 32768 | % 16384 | % 8192 | % 4096 | Time | Moves/s |
+ | Depth  | Games | Score  | % 32768 | % 16384 | % 8192 | % 4096 | Time | Moves/s |
  |--------|-------|--------|---------|---------|--------|--------|------|---------|
  | 3 ply  | 1000  | 216159 | 0.8     | 43      | 85.4   | 98.1   | 3s   | 2343    |
  | 5 ply  | 300   | 283720 | 2       | 66.33   | 96     | 100    | 17s  | 648     |
- | 7 ply  | 100   | 353368 | 12      | 85      | 98     | 100    | 87s  | 158     |--->
+ | 7 ply  | 100   | 353368 | 12      | 85      | 98     | 100    | 87s  | 158     |
 
 ## Features
  - 64-bit Bitboard representation.
@@ -23,7 +22,7 @@
  - Top level parallelism (web version only).
  - Prune nodes with low probability.
  - Dynamic probability threshold.
- - 64MB transposistion table with Zobrist Hash. (256MB on the web version)
+ - 80MB transposistion table with Zobrist Hash. (320MB on the web version)
 
 ## Heuristic
  Heuristics not only increase the strength of the AI but also direct the AI into positions that can be evaluated faster, which'll increase the speed of the AI significantly. I came up with new heuristics for the evaluation function such as smoothness (making the board easier to merge), floating tiles (preventing flat boards),... but I can't tune the weights using mathematical optimization so I used the same heuristics from [this AI](https://github.com/nneonneo/2048-ai).

@@ -1,5 +1,3 @@
-#include <cmath>
-#include <algorithm>
 #include "board.hpp"
 #include "hash.hpp"
 #include "move.hpp"
@@ -22,8 +20,8 @@ class Search {
         if (newBoard == s) return 0;
         stateEvaled = 0;
         unsigned currentDepth = MIN_DEPTH;
-        int diff = CountDistinct(s);
-        if (diff >= 12) currentDepth += (1 << (diff - 12));
+        //int diff = CountDistinct(s);
+        // if (diff >= 12) currentDepth += (1 << (diff - 12));
         minProb = 1.0f / float(1 << (2 * currentDepth + 5));
         float result = ExpectimaxSpawnNode(newBoard, currentDepth, 1.0f);
         int minState = 1 << (3 * currentDepth + 5);

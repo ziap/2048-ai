@@ -126,15 +126,14 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < 5; ++i) fout << (1 << (i + 11)) << ',';
     fout << '\n';
     for (int i = 0; i < 5; ++i) fout << (float)bigTiles[i] * 100.0 / (float)iterations << "%,";
-    fout << "\n,\nGame,";
-    for (int i = 1; i <= iterations; ++i) fout << i << ',';
-    fout << "\nScore,";
-    for (auto i : resultScore) fout << i << ',';
-    fout << "\nMoves,";
-    for (auto i : resultMoves) fout << i << ',';
-    fout << "\nTime,";
-    for (auto i : resultTime) fout << i << ',';
-    fout << "\nSpeed,";
-    for (auto i : resultSpeed) fout << i << ',';
-    fout << '\n';
+    fout << "\n,\nGame,Score,Moves,Time,Speed\n";
+    float sumScore = 0, sumMoves = 0, sumTime = 0, sumSpeed = 0;
+    for (int i = 0; i < iterations; ++i) {
+        fout << i + 1 << ',' << resultScore[i] << ',' << resultMoves[i] << ',' << resultTime[i] << ',' << resultSpeed[i] << '\n';
+        sumScore += resultScore[i];
+        sumMoves += resultMoves[i];
+        sumTime += resultTime[i];
+        sumSpeed += resultSpeed[i];
+    }
+    fout << "Average" << ',' << sumScore / iterations << ',' << sumMoves / iterations << ',' << sumTime / iterations << ',' << sumSpeed / iterations;
 }
