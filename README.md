@@ -2,6 +2,10 @@
  An AI made for the game 2048.
  The AI can reach 16384 most of the time and sometimes even reach 32768.
 
+ The AI reached the 32768 tile in the browser version after 5 attempts and achieved the score of 630032. Below is the screenshot of that game.
+
+ ![32769](32768.png)
+
 ## Algorithm
  This AI is an Expectimax search run in parallel on your browser without any back-end server or browser control, so you can even run it on a mobile device.
 
