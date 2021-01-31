@@ -1,18 +1,14 @@
 #include "board.hpp"
+#include "heuristic.hpp"
 #include "hash.hpp"
 #include "move.hpp"
-#include "heuristic.hpp"
 
 Hash hash;
 
 class Search {
     public:
-    Search(int minDepth, float SCORE_MONOTONICITY_POWER, float SCORE_MONOTONICITY_WEIGHT,
-        float SCORE_SUM_POWER, float SCORE_SUM_WEIGHT,
-        float SCORE_MERGES_WEIGHT, float SCORE_EMPTY_WEIGHT) {
+    Search(int minDepth) {
         MIN_DEPTH = minDepth;
-        heuristic.BuildTable(SCORE_MONOTONICITY_POWER, SCORE_MONOTONICITY_WEIGHT, 
-            SCORE_SUM_POWER, SCORE_SUM_WEIGHT, SCORE_MERGES_WEIGHT, SCORE_EMPTY_WEIGHT);
     }
 
     float operator()(board_t s, int moveDir) {
@@ -36,7 +32,6 @@ class Search {
         }
         return result;
     }
-    
     private:
     Heuristic heuristic;
     Move move;
@@ -45,7 +40,7 @@ class Search {
     float minProb;
 
     float ExpectimaxSpawnNode(board_t s, int depth, float prob) {
-        if (depth <= 0 || prob < minProb) return heuristic.ScoreHeuristic(s) + heuristic.ScoreHeuristic(Transpose(s));
+        if (depth <= 0 || prob < minProb) return heuristic(s);
         float expect = 0.0;
         int currentEvaled = stateEvaled;
         stateEvaled += hash.Lookup(s, depth, &expect);
@@ -68,7 +63,7 @@ class Search {
 
     float ExpectimaxMoveNode(board_t s, int depth, float prob) {
         ++stateEvaled;
-        float max = 0;
+        float max = Heuristic::LOSE_PENALTY;
         for (int i = 0; i < 4; ++i) {
             board_t newBoard = move(s, i);
             if (newBoard != s) max = std::max(max, ExpectimaxSpawnNode(newBoard, depth, prob));

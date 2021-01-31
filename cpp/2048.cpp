@@ -73,9 +73,10 @@ int main(int argc, char* argv[]) {
             break;
         }
     }
-    Search search(depth, 4.0, 47.0, 3.5, 11.0, 700.0, 270.0);
+    Search search(depth);
     for (int game = 1; game <= iterations; ++game) {
         std::cout << "Running game " << game << "/" << iterations <<'\n';
+        hash.CLear();
         gen4tiles = 0;
         board = AddRandomTile(AddRandomTile(0));
         int moves = 0;

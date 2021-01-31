@@ -1,11 +1,22 @@
 class Heuristic {
     private:
     float heurTable[65536];
+    float ScoreHeuristic(board_t board) {
+        return
+            heurTable[(board >> 48) & 0xffff] +
+            heurTable[(board >> 32) & 0xffff] +
+            heurTable[(board >> 16) & 0xffff] +
+            heurTable[board & 0xffff];
+    }
     public:
-    void BuildTable(float SCORE_MONOTONICITY_POWER, float SCORE_MONOTONICITY_WEIGHT,
-        float SCORE_SUM_POWER, float SCORE_SUM_WEIGHT,
-        float SCORE_MERGES_WEIGHT, float SCORE_EMPTY_WEIGHT) {
-        const float SCORE_LOST_PENALTY = 200000.0;
+    Heuristic() {
+        const float SCORE_LOST_PENALTY = 200000.0f;
+        const float SCORE_MONOTONICITY_POWER = 4.0f;
+        const float SCORE_MONOTONICITY_WEIGHT = 47.0f;
+        const float SCORE_SUM_POWER = 3.5f;
+        const float SCORE_SUM_WEIGHT = 11.0f;
+        const float SCORE_MERGES_WEIGHT = 700.0f;
+        const float SCORE_EMPTY_WEIGHT = 270.0f;
         for (unsigned row = 0; row < 65536; ++row) {
             unsigned line[4] = {
                 (row >>  0) & 0xf,
@@ -51,11 +62,8 @@ class Heuristic {
                 SCORE_SUM_WEIGHT * sum;
         }
     }
-    float ScoreHeuristic(board_t board) {
-        return
-            heurTable[(board >> 48) & 0xffff] +
-            heurTable[(board >> 32) & 0xffff] +
-            heurTable[(board >> 16) & 0xffff] +
-            heurTable[board & 0xffff];
+    float operator() (board_t s) {
+        return ScoreHeuristic(s) + ScoreHeuristic(Transpose(s));
     }
+    static constexpr float LOSE_PENALTY = 0;
 };

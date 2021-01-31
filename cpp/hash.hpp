@@ -24,9 +24,12 @@ class Hash
         entry.score = score;
         entry.moves = moves;
     }
+    void CLear() {
+        for (int i = 0; i < 0x400000; ++i) entries[i].board = 0;
+    }
     private:
     struct Entry {
-        unsigned long long board;
+        board_t board;
         float score;
         int depth;
         int moves;
