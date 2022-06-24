@@ -57,7 +57,7 @@ make
  After running the AI you can see the result in result.csv with any spreadsheet viewer (for example MS Excel).
 
 ### Web version
- You can go to [this web page](https://ziap.github.io/2048-wasm) to run the AI.
+ You can go to [this web page](https://ziap.github.io/2048-ai) to run the AI.
 
  If you want to edit the search parameters or change the evaluation function, you need to set up Emscripten first, you can download it [here](https://emscripten.org/docs/getting_started/downloads.html).
  
