@@ -1,4 +1,4 @@
-import {GameManager} from "./2048-vendor/index.min.js"
+import {GameManager} from "./vendor/2048.min.js"
 
 let game;
 window.requestAnimationFrame(() => {
