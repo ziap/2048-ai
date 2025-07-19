@@ -30,7 +30,6 @@ const Heuristic = struct {
 
   fn new() Heuristic {
     var table: Heuristic = undefined;
-    var min_score: i32 = 0;
     for (&table.score_table, 0..) |*entry, idx| {
       var row = idx;
       var result: i32 = 0;
@@ -45,21 +44,29 @@ const Heuristic = struct {
         const tile: u4 = @truncate(row);
         row >>= 4;
         if (tile > 0) {
-          const score = @as(i32, tile) << tile;
           if (tile <= last) {
-            result += score;
-            if (tile == last) {
-              result += 2 * score;
-            }
-          } else {
-            result -= score;
+            result += @as(i32, tile) << tile;
           }
           last = tile;
         }
       }
 
-      min_score = @min(min_score, result);
       entry.* = result;
+    }
+
+    const S = struct {
+      fn reverse(x: u16) u16 {
+        return (
+          (x >> 12) |
+          ((x >> 4) & 0x00f0) |
+          ((x << 4) & 0x0f00) |
+          (x << 12)
+        );
+      }
+    };
+
+    for (&table.score_table, 0..) |*entry, idx| {
+      entry.* = @max(entry.*, table.score_table[S.reverse(@intCast(idx))]);
     }
 
     return table;
@@ -188,7 +195,7 @@ pub fn main() !void {
   while (true) {
     const moves = move_table.getMoves(board);
     var timer = try std.time.Timer.start();
-    const dir = expectimax(board, ctx, 3) orelse break;
+    const dir = expectimax(board, ctx, 5) orelse break;
     total_time += @as(f64, @floatFromInt(timer.read())) / std.time.ns_per_ms;
     total_move += 1;
     board = moves[dir].addTile(&rng);
@@ -207,7 +214,5 @@ pub fn main() !void {
 }
 
 const std = @import("std");
-const ArrayList = std.ArrayListUnmanaged;
-const HashMap = std.AutoHashMapUnmanaged;
 const Fmc256 = @import("lib/Fmc256.zig");
 const Board = @import("lib/Board.zig");

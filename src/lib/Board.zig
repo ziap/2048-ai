@@ -131,7 +131,7 @@ pub const MoveTable = struct {
       const S = struct {
         fn reverse(x: u16) u16 {
           return (
-            (x >> 12) | 
+            (x >> 12) |
             ((x >> 4) & 0x00f0) |
             ((x << 4) & 0x0f00) |
             (x << 12)
