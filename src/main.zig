@@ -3,14 +3,14 @@ const Cache = struct {
   const CACHE_SIZE = 1 << CACHE_BITS;
 
   boards: [CACHE_SIZE]u64,
-  scores: [CACHE_SIZE]f32,
+  scores: [CACHE_SIZE]u64,
   depths: [CACHE_SIZE]u8,
 
   fn init(cache: *Cache) void {
     @memset(&cache.boards, 0);
   }
 
-  fn insert(self: *Cache, board: Board, depth: u8, score: f32) void {
+  fn insert(self: *Cache, board: Board, depth: u8, score: u64) void {
     const h = board.hash(CACHE_BITS);
 
     self.boards[h] = board.data;
@@ -18,7 +18,7 @@ const Cache = struct {
     self.scores[h] = score;
   }
 
-  fn query(self: *Cache, board: Board, depth: u8) ?f32 {
+  fn query(self: *Cache, board: Board, depth: u8) ?u64 {
     const h = board.hash(CACHE_BITS);
     if (self.boards[h] != board.data or self.depths[h] < depth) return null;
     return self.scores[h];
@@ -26,17 +26,17 @@ const Cache = struct {
 };
 
 const Heuristic = struct {
-  score_table: [65536]i32,
+  score_table: [65536]u32,
 
   fn new() Heuristic {
     var table: Heuristic = undefined;
     for (&table.score_table, 0..) |*entry, idx| {
       var row = idx;
-      var result: i32 = 0;
+      var result: u32 = 0;
       var last = last: {
         const tile: u4 = @truncate(row);
         row >>= 4;
-        result += @as(i32, tile) << tile;
+        result += @as(u32, tile) << tile;
         break :last tile;
       };
 
@@ -45,7 +45,7 @@ const Heuristic = struct {
         row >>= 4;
         if (tile > 0) {
           if (tile <= last) {
-            result += @as(i32, tile) << tile;
+            result += @as(u32, tile) << tile;
           }
           last = tile;
         }
@@ -61,10 +61,10 @@ const Heuristic = struct {
     return table;
   }
 
-  fn evaluate(self: *const Heuristic, board: Board) i32 {
+  fn evaluate(self: *const Heuristic, board: Board) u32 {
     var data = board.data;
     var transposed = board.transpose().data;
-    var score: i32 = 0;
+    var score: u32 = 0;
 
     for (0..4) |_| {
       const row: u16 = @truncate(data);
@@ -85,42 +85,40 @@ const SearchContext = struct {
   cache: *Cache,
 };
 
-fn expectNode(board: Board, ctx: SearchContext, depth: u8) f32 {
-  if (depth == 0) return @floatFromInt(ctx.heuristic.evaluate(board));
+fn expectNode(board: Board, ctx: SearchContext, depth: u8) u64 {
+  if (depth == 0) return @as(u64, ctx.heuristic.evaluate(board)) << 32;
 
   if (ctx.cache.query(board, depth)) |score| {
     return score;
   }
 
   var mask = board.emptyPos();
-  const total: f32 = @floatFromInt(@popCount(mask));
-
-  const weight2 = 0.9 / total;
-  const weight4 = 0.1 / total;
-
-  var score: f32 = 0;
+  const total: u64 = @popCount(mask);
+  var score: u64 = 0;
 
   while (mask != 0) {
     const tile = mask & -%mask;
     mask ^= tile;
 
-    score += weight2 * maxNode(.{
+    score += 9 * maxNode(.{
       .data = board.data | tile,
     }, ctx, depth);
 
-    score += weight4 * maxNode(.{
+    score += 1 * maxNode(.{
       .data = board.data | (tile << 1),
     }, ctx, depth);
   }
+
+  score /= 10 * total;
 
   ctx.cache.insert(board, depth, score);
   return score;
 }
 
-fn maxNode(board: Board, ctx: SearchContext, depth: u8) f32 {
+fn maxNode(board: Board, ctx: SearchContext, depth: u8) u64 {
   const moves = ctx.move_table.getMoves(board);
 
-  var max_score: f32 = 0;
+  var max_score: u64 = 0;
   inline for (moves) |next_board| {
     if (next_board.data != board.data) {
       max_score = @max(max_score, expectNode(next_board, ctx, depth - 1));
@@ -133,7 +131,7 @@ fn maxNode(board: Board, ctx: SearchContext, depth: u8) f32 {
 fn expectimax(board: Board, ctx: SearchContext, depth: u8) ?u4 {
   const moves = ctx.move_table.getMoves(board);
 
-  var best_score: f32 = 0;
+  var best_score: u64 = 0;
   var best_move: ?u4 = null;
 
   inline for (moves, 0..) |next_board, dir| {
