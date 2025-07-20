@@ -54,19 +54,8 @@ const Heuristic = struct {
       entry.* = result;
     }
 
-    const S = struct {
-      fn reverse(x: u16) u16 {
-        return (
-          (x >> 12) |
-          ((x >> 4) & 0x00f0) |
-          ((x << 4) & 0x0f00) |
-          (x << 12)
-        );
-      }
-    };
-
     for (&table.score_table, 0..) |*entry, idx| {
-      entry.* = @max(entry.*, table.score_table[S.reverse(@intCast(idx))]);
+      entry.* = @max(entry.*, table.score_table[common.reverse16(@intCast(idx))]);
     }
 
     return table;
@@ -190,13 +179,13 @@ pub fn main() !void {
   };
 
   var total_time: f64 = 0;
-  var total_move: u32 = 0;
+  var total_move: u64 = 0;
 
   while (true) {
     const moves = move_table.getMoves(board);
     var timer = try std.time.Timer.start();
     const dir = expectimax(board, ctx, 5) orelse break;
-    total_time += @as(f64, @floatFromInt(timer.read())) / std.time.ns_per_ms;
+    total_time += @as(f64, @floatFromInt(timer.read()));
     total_move += 1;
     board = moves[dir].addTile(&rng);
 
@@ -205,7 +194,7 @@ pub fn main() !void {
   }
 
   try writer.print("Speed: {d} moves/s\n", .{
-    total_move * 1000 / @as(u32, @intFromFloat(total_time)),
+    total_move * std.time.ns_per_s / @as(u64, @intFromFloat(total_time)),
   });
   try writer.print("Game over! Max tile: {d}\n", .{
     @as(u16, 1) << board.maxTile(),
@@ -216,3 +205,4 @@ pub fn main() !void {
 const std = @import("std");
 const Fmc256 = @import("lib/Fmc256.zig");
 const Board = @import("lib/Board.zig");
+const common = @import("lib/common.zig");

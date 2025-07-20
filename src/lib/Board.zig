@@ -128,44 +128,25 @@ pub const MoveTable = struct {
         break :moved moved;
       };
 
-      const S = struct {
-        fn reverse(x: u16) u16 {
-          return (
-            (x >> 12) |
-            ((x >> 4) & 0x00f0) |
-            ((x << 4) & 0x0f00) |
-            (x << 12)
-          );
-        }
-      };
-
       table.forward_table[row] = moved;
-      table.reverse_table[S.reverse(@intCast(row))] = S.reverse(moved);
+      table.reverse_table[common.reverse16(@intCast(row))] = common.reverse16(moved);
     }
 
     return table;
   }
 
   pub fn getMoves(self: MoveTable, board: Board) [4]Board {
-    const transposed = board.transpose();
-
-    const rows = [_]u16{
-      @truncate(board.data >> 48),
-      @truncate(board.data >> 32),
-      @truncate(board.data >> 16),
-      @truncate(board.data >>  0),
-    };
-
-    const cols = [_]u16{
-      @truncate(transposed.data >> 48),
-      @truncate(transposed.data >> 32),
-      @truncate(transposed.data >> 16),
-      @truncate(transposed.data >>  0),
-    };
+    var data = board.data;
+    var transposed = board.transpose().data;
 
     var result: [4]Board = undefined;
 
-    inline for (rows, cols) |row, col| {
+    inline for (0..4) |_| {
+      const row = data >> 48;
+      const col = transposed >> 48;
+      data <<= 16;
+      transposed <<= 16;
+
       inline for (0..4) |dir| {
         result[dir].data <<= 16;
       }
@@ -223,11 +204,13 @@ pub const lessThan = struct {
   }
 }.inner;
 
+pub const HASH_MUL = 0xf1357aea2e62a9c5;
+
 // Lehmer64 PRNG hash function, a very fast but weak hash function that
 // comphensate its speed for some extra collisions
 pub fn hash(self: Board, bits: comptime_int) common.Uint(bits) {
   // MCG multiplier from: <https://arxiv.org/pdf/2001.05304>
-  const h = self.data *% 0xf1357aea2e62a9c5;
+  const h = self.data *% HASH_MUL;
 
   // I use shift instead of truncation because the high bits have better
   // statistical quality
