@@ -39,13 +39,7 @@ pub fn next(self: *Fmc256) u64 {
 /// and adapted to 256-bit
 const Montgomery = struct {
   /// Multiplicative inverse of MOD modulo 2^256
-  const MOD_INV: u256 = blk: {
-    var x: u256 = 1;
-    for (0..8) |_| {
-      x *%= 2 -% MOD *% x;
-    }
-    break :blk x;
-  };
+  const MOD_INV = common.modinv(u256, MOD);
 
   /// Multiply two number in Montgomery space, or (rx, ry) -> rxy
   fn multiply(x: u256, y: u256) u256 {
@@ -128,3 +122,5 @@ pub fn fromSeed(seed: *const [4]u64) Fmc256 {
 pub fn bounded(self: *Fmc256, range: u64) u64 {
   return @truncate((@as(u128, self.next()) * range) >> 64);
 }
+
+const common = @import("common.zig");

@@ -204,7 +204,8 @@ pub const lessThan = struct {
   }
 }.inner;
 
-pub const HASH_MUL = 0xf1357aea2e62a9c5;
+pub const HASH_MUL: u64 = 0xf1357aea2e62a9c5;
+pub const HASH_INV: u64 = common.modinv(u64, HASH_MUL);
 
 // Lehmer64 PRNG hash function, a very fast but weak hash function that
 // comphensate its speed for some extra collisions
