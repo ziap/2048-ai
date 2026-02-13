@@ -7,25 +7,11 @@ pub fn Uint(BITS: comptime_int) type {
   });
 }
 
-pub fn reverse16(x: u16) u16 {
-  return (
-    (x >> 12) |
-    ((x >> 4) & 0x00f0) |
-    ((x << 4) & 0x0f00) |
-    (x << 12)
-  );
-}
-
 pub fn modinv(T: type, x: T) T {
   const iter_count = comptime iter_count: {
     const size = @typeInfo(T).int.bits;
-
-    var iter_count = 0;
-    while ((1 << iter_count) < size) {
-      iter_count += 1;
-    }
-
-    break :iter_count iter_count;
+    const bits = @typeInfo(@TypeOf(size)).int.bits;
+    break :iter_count bits - @clz(size) - 1;
   };
 
   var res: T = 1;

@@ -48,7 +48,7 @@ pub fn emptyPos(self: Board) u64 {
   return ~b & 0x1111111111111111;
 }
 
-pub fn addTile(self: Board, rng: *Fmc256) Board {
+pub fn addTile(self: Board, rng: *Fmc256) struct { Board, u1 } {
   const mask = self.emptyPos();
   const empty_count = @popCount(mask);
 
@@ -58,18 +58,22 @@ pub fn addTile(self: Board, rng: *Fmc256) Board {
     for (0..idx) |_| {
       t &= t - 1;
     }
-    break :tile t & -% t;
+    break :tile t & -%t;
   };
   const shift: u1 = if (rng.bounded(10) == 0) 1 else 0;
 
   return .{
-    .data = self.data | (tile << shift)
+    .{ .data = self.data | (tile << shift) },
+    shift,
   };
 }
 
-pub fn new(rng: *Fmc256) Board {
+pub fn new(rng: *Fmc256) struct { Board, u2 } {
   const board: Board = .{ .data = 0 };
-  return board.addTile(rng).addTile(rng);
+  const board1, const is_four1 = board.addTile(rng);
+  const board2, const is_four2 = board1.addTile(rng);
+
+  return .{ board2, @as(u2, is_four1) + @as(u2, is_four2) };
 }
 
 pub fn transpose(self: Board) Board {
@@ -79,6 +83,15 @@ pub fn transpose(self: Board) Board {
   b = (x ^ (x >> 24)) & 0x00000000ff00ff00;
   x ^= b ^ (b << 24);
   return .{ .data = x };
+}
+
+pub fn reverse16(x: u16) u16 {
+  return (
+    (x >> 12) |
+    ((x >> 4) & 0x00f0) |
+    ((x << 4) & 0x0f00) |
+    (x << 12)
+  );
 }
 
 pub const MoveTable = struct {
@@ -129,7 +142,7 @@ pub const MoveTable = struct {
       };
 
       table.forward_table[row] = moved;
-      table.reverse_table[common.reverse16(@intCast(row))] = common.reverse16(moved);
+      table.reverse_table[reverse16(@intCast(row))] = reverse16(moved);
     }
 
     return table;
@@ -196,6 +209,17 @@ pub fn maxTile(self: Board) u4 {
   }
 
   return result;
+}
+
+pub fn score(self: Board, four_count: u32) u32 {
+  var data = self.data;
+  var result: u32 = 0;
+  inline for (0..16) |_| {
+    const tile: u4 = @truncate(data);
+    result += @as(u32, tile -| 1) << tile;
+    data >>= 4;
+  }
+  return result - 4 * four_count;
 }
 
 pub const lessThan = struct {

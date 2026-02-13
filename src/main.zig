@@ -1,21 +1,11 @@
-const MemoSearch = struct {
+const Expectimax = struct {
   const Cache = struct {
-    const CACHE_BITS = 22;
+    const CACHE_BITS = 24;
     const CACHE_SIZE = 1 << CACHE_BITS;
 
+    depths: [CACHE_SIZE]u8,
     boards: [CACHE_SIZE]u64,
     scores: [CACHE_SIZE]f32,
-    depths: [CACHE_SIZE]u8,
-    inserts: u32,
-
-    fn new() Cache {
-      return .{
-        .boards = undefined,
-        .scores = undefined,
-        .depths = @splat(0),
-        .inserts = 0,
-      };
-    }
 
     fn insert(self: *Cache, board: Board, depth: u8, score: f32) void {
       const h = board.hash(CACHE_BITS);
@@ -23,7 +13,6 @@ const MemoSearch = struct {
       self.boards[h] = board.data;
       self.depths[h] = depth;
       self.scores[h] = score;
-      self.inserts += 1;
     }
 
     fn query(self: *Cache, board: Board, depth: u8) ?f32 {
@@ -37,16 +26,22 @@ const MemoSearch = struct {
   heuristic: *const Heuristic,
   cache: Cache,
 
-  fn new(move_table: *const Board.MoveTable, heuristic: *const Heuristic) MemoSearch {
+  fn new(move_table: *const Board.MoveTable, heuristic: *const Heuristic) Expectimax {
     return .{
       .move_table = move_table,
       .heuristic = heuristic,
-      .cache = .new(),
+      .cache = .{
+        .boards = @splat(0),
+        .depths = undefined,
+        .scores = undefined,
+      },
     };
   }
 
-  fn expectNode(self: *MemoSearch, board: Board, depth: u8) f32 {
-    if (depth == 0) return @floatFromInt(self.heuristic.evaluate(board));
+  fn expectNode(self: *Expectimax, board: Board, depth: u8) f32 {
+    if (depth == 0) {
+      return self.heuristic.evaluate(board);
+    }
 
     if (self.cache.query(board, depth)) |score| {
       return score;
@@ -56,8 +51,8 @@ const MemoSearch = struct {
     const total: f32 = @floatFromInt(@popCount(mask));
     var score: f32 = 0;
 
-    const w2 = 0.1 / total;
-    const w4 = 0.9 / total;
+    const w2 = 0.9 / total;
+    const w4 = 0.1 / total;
 
     while (mask != 0) {
       const tile = mask & -%mask;
@@ -71,7 +66,7 @@ const MemoSearch = struct {
     return score;
   }
 
-  fn maxNode(self: *MemoSearch, board: Board , depth: u8) f32 {
+  fn maxNode(self: *Expectimax, board: Board , depth: u8) f32 {
     const moves = self.move_table.getMoves(board);
 
     var max_score: f32 = 0;
@@ -84,14 +79,7 @@ const MemoSearch = struct {
     return max_score;
   }
 
-  fn searchDepth(board: Board) struct { u8, u32 } {
-    const depth_lut: [17]u8 = .{
-      3, 3, 3, 3,
-      4, 4, 4, 4, 4,
-      5, 5, 5,
-      6, 6, 6, 6, 6
-    };
-
+  fn searchDepth(board: Board) u8 {
     var hist: u16 = 0;
     var data = board.data;
     inline for (0..16) |_| {
@@ -101,37 +89,31 @@ const MemoSearch = struct {
     }
 
     const count = @popCount(hist);
-    
-    return .{
-      depth_lut[count], @as(u32, 64) << count,
+
+    return switch (count) {
+      0...5 => 3,
+      6...9 => 4,
+      10...11 => 5,
+      12 => 6,
+      13 => 8,
+      else => 10,
     };
   }
 
-  fn search(self: *MemoSearch, board: Board) ?u4 {
+  fn search(self: *Expectimax, board: Board) ?u4 {
     const moves = self.move_table.getMoves(board);
+    const depth = searchDepth(board);
 
-    var best_score: f32 = 0;
     var best_move: ?u4 = null;
+    var best_score: f32 = 0;
 
-    var depth, const total_nodes = searchDepth(board);
-
-    var last: u32 = 0;
-    while (last < total_nodes) : (depth += 1) {
-      self.cache.inserts = 0;
-      inline for (moves, 0..) |next_board, dir| {
-        if (next_board.data != board.data) {
-          const score = self.expectNode(next_board, depth);
-          if (score > best_score) {
-            best_score = score;
-            best_move = dir;
-          }
+    inline for (moves, 0..) |next_board, dir| {
+      if (next_board.data != board.data) {
+        const score = self.expectNode(next_board, depth);
+        if (score > best_score) {
+          best_score = score;
+          best_move = dir;
         }
-      }
-
-      if (self.cache.inserts > last) {
-        last = self.cache.inserts;
-      } else {
-        break;
       }
     }
 
@@ -139,13 +121,16 @@ const MemoSearch = struct {
   }
 };
 
-const TableSearch = struct {
-
-};
+var ctx: Expectimax = undefined;
 
 pub fn main() !void {
-  var buffer = std.io.bufferedWriter(std.io.getStdOut().writer());
-  var writer = buffer.writer();
+  var buffer: [4096]u8 = undefined;
+  var stdout = std.fs.File.stdout().writer(&buffer);
+  const writer = &stdout.interface;
+
+  // var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+  // defer arena.deinit();
+  // const allocator = arena.allocator();
 
   // var rng: Fmc256 = .fromSeed(&.{ 0, 0, 0, 42 });
   var rng: Fmc256 = rng: {
@@ -157,18 +142,13 @@ pub fn main() !void {
   const move_table: Board.MoveTable = .new();
   const heuristic: Heuristic = .new();
 
-  var board: Board = .new(&rng);
-  try board.display(&writer);
-  try buffer.flush();
+  var board: Board, var four_count: u32 = Board.new(&rng);
+  try board.display(writer);
+  try writer.flush();
 
-  const ctx = ctx: {
-    const S = struct {
-      var searcher: MemoSearch = undefined;
-    };
+  four_count += 1;
 
-    S.searcher = .new(&move_table, &heuristic);
-    break :ctx &S.searcher;
-  };
+  ctx = .new(&move_table, &heuristic);
 
   var total_time: f64 = 0;
   var total_move: u64 = 0;
@@ -179,19 +159,21 @@ pub fn main() !void {
     const dir = ctx.search(board) orelse break;
     total_time += @as(f64, @floatFromInt(timer.read()));
     total_move += 1;
-    board = moves[dir].addTile(&rng);
+    board, const is_four = moves[dir].addTile(&rng);
+    four_count += is_four;
 
-    try board.display(&writer);
-    try buffer.flush();
+    try board.display(writer);
+    try writer.flush();
   }
 
   try writer.print("Speed: {d} moves/s\n", .{
     total_move * std.time.ns_per_s / @as(u64, @intFromFloat(total_time)),
   });
-  try writer.print("Game over! Max tile: {d}\n", .{
+  try writer.print("Game over! Max tile: {d} - Score: {d}\n", .{
     @as(u16, 1) << board.maxTile(),
+    board.score(four_count),
   });
-  try buffer.flush();
+  try writer.flush();
 }
 
 const std = @import("std");
