@@ -94,7 +94,7 @@ const Expectimax = struct {
 
     var depth: u8 = 0;
     while (current_len > 0) {
-      std.mem.sort(Board, current[0..current_len], {}, Board.lessThan);
+      Board.sort(current[0..current_len], next[0..current_len]);
 
       var next_len: u32 = 0;
       var last: u64 = 0;
