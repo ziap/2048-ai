@@ -1,6 +1,6 @@
 const Expectimax = struct {
   const Cache = struct {
-    const CACHE_BITS = 24;
+    const CACHE_BITS = 17;
     const CACHE_SIZE = 1 << CACHE_BITS;
 
     depths: [CACHE_SIZE]u8,
@@ -79,35 +79,65 @@ const Expectimax = struct {
     return max_score;
   }
 
-  fn searchDepth(board: Board) u8 {
-    var hist: u16 = 0;
-    var data = board.data;
-    inline for (0..16) |_| {
-      const tile: u4 = @truncate(data);
-      hist |= @as(u16, 1) << tile;
-      data >>= 4;
+  fn searchDepth(self: *const Expectimax, board: Board, buffers: [2][]Board) u8 {
+    var current = buffers[0];
+    var next = buffers[1];
+
+    var current_len: u32 = 0;
+
+    inline for (self.move_table.getMoves(board)) |next_board| {
+      if (next_board.data != board.data) {
+        current[current_len] = next_board;
+        current_len += 1;
+      }
     }
 
-    const count = @popCount(hist);
+    var depth: u8 = 0;
+    while (current_len > 0) {
+      std.mem.sort(Board, current[0..current_len], {}, Board.lessThan);
 
-    return switch (count) {
-      0...5 => 3,
-      6...9 => 4,
-      10...11 => 5,
-      12 => 6,
-      13 => 8,
-      else => 10,
-    };
+      var next_len: u32 = 0;
+      var last: u64 = 0;
+      for (current[0..current_len]) |next_board| {
+        if (last == next_board.data) continue;
+        last = next_board.data;
+
+        var mask = next_board.emptyPos();
+        while (mask != 0) {
+          const tile = mask & -%mask;
+          mask ^= tile;
+
+          const next2: Board = .{ .data = last | tile };
+          const next4: Board = .{ .data = last | (tile << 1) };
+
+          for ([_]Board{ next2, next4 }) |spawned| {
+            for (self.move_table.getMoves(spawned)) |moved| {
+              if (moved.data == spawned.data) continue;
+              if (next_len == next.len) return depth;
+
+              next[next_len] = moved;
+              next_len += 1;
+            }
+          }
+        }
+      }
+
+      const tmp = current;
+      current = next;
+      current_len = next_len;
+
+      next = tmp;
+      depth += 1;
+    }
+
+    return depth;
   }
 
-  fn search(self: *Expectimax, board: Board) ?u4 {
-    const moves = self.move_table.getMoves(board);
-    const depth = searchDepth(board);
-
+  fn search(self: *Expectimax, board: Board, depth: u8) ?u4 {
     var best_move: ?u4 = null;
     var best_score: f32 = 0;
 
-    inline for (moves, 0..) |next_board, dir| {
+    inline for (self.move_table.getMoves(board), 0..) |next_board, dir| {
       if (next_board.data != board.data) {
         const score = self.expectNode(next_board, depth);
         if (score > best_score) {
@@ -128,15 +158,10 @@ pub fn main() !void {
   var stdout = std.fs.File.stdout().writer(&buffer);
   const writer = &stdout.interface;
 
-  // var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-  // defer arena.deinit();
-  // const allocator = arena.allocator();
-
-  // var rng: Fmc256 = .fromSeed(&.{ 0, 0, 0, 42 });
   var rng: Fmc256 = rng: {
     var seed: [4]u64 = undefined;
     try std.posix.getrandom(@ptrCast(&seed));
-    break :rng .fromSeed(&seed);
+    break :rng .fromSeed(seed);
   };
 
   const move_table: Board.MoveTable = .new();
@@ -153,16 +178,20 @@ pub fn main() !void {
   var total_time: f64 = 0;
   var total_move: u64 = 0;
 
+  var buffers: [2][200_000]Board = undefined;
+
   while (true) {
     const moves = move_table.getMoves(board);
     var timer = try std.time.Timer.start();
-    const dir = ctx.search(board) orelse break;
+    const depth = ctx.searchDepth(board, .{ &buffers[0], &buffers[1] }) + 1;
+    const dir = ctx.search(board, depth) orelse break;
     total_time += @as(f64, @floatFromInt(timer.read()));
     total_move += 1;
     board, const is_four = moves[dir].addTile(&rng);
     four_count += is_four;
 
     try board.display(writer);
+    try writer.print("Search depth: {}\n", .{ depth });
     try writer.flush();
   }
 

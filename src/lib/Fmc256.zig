@@ -1,120 +1,108 @@
 const Fmc256 = @This();
 
-const MUL = 0xffff1aa1c69c8d92;
-const MOD = (MUL << 192) - 1;
+const MUL = 0xfffff6827807261d;
+const endian = @import("builtin").target.cpu.arch.endian();
 
-pub const JUMP_SMALL = 1 << 128;
-pub const JUMP_BIG = 1 << 192;
+state: [4]u64,
 
-pub const JUMP_PHI = blk: {
-  // Initial approximation: 0.625
-  var x = MOD * 5 / 8;
-  var dec = false;
-
-  // Newton's method iterations
-  while (true) {
-    const nx = (MOD * MOD + x * x) / (MOD + 2 * x);
-    if (x == nx or (dec and nx > x)) break :blk x;
-
-    dec = nx < x;
-    x = nx;
+/// Constructs an RNG from a 256-bit seed, maps them into the algebraic ring
+pub fn fromSeed(seed: [4]u64) Fmc256 {
+  var state: [4]u64 = undefined;
+  var carry = seed[3];
+  for (state[0..3], seed[0..3]) |*item, limb| {
+    const m = @as(u128, limb) * MUL + carry;
+    item.* = @truncate(m);
+    carry = @intCast(m >> 64);
   }
-};
+  state[3] = carry;
 
-state: [3]u64,
-carry: u64,
+  // Ensure non-zero state
+  const v: u256 = @bitCast(state);
+  if (v == 0) state[0] = 1;
+  var result: Fmc256 = .{ .state = state };
 
-pub fn next(self: *Fmc256) u64 {
-  const result = self.state[2] ^ self.carry;
-  const m = @as(u128, self.state[0]) * MUL + self.carry;
-  self.state[0] = self.state[1];
-  self.state[1] = self.state[2];
-  self.state[2] = @truncate(m);
-  self.carry = @intCast(m >> 64);
+  // Ensure state < MOD
+  _ = result.next();
   return result;
 }
 
-/// Montgomery space for fast modular arithmetic of 256-bit integers
-/// Code taken from: https://en.algorithmica.org/hpc/number-theory/montgomery/
-/// and adapted to 256-bit
-const Montgomery = struct {
-  /// Multiplicative inverse of MOD modulo 2^256
-  const MOD_INV = common.modinv(u256, MOD);
-
-  /// Multiply two number in Montgomery space, or (rx, ry) -> rxy
-  fn multiply(x: u256, y: u256) u256 {
-    // Wide multiplication into 512-bit
-    const p = @as(u512, x) * @as(u512, y);
-    const lo: u256 = @truncate(p);
-    const hi: u256 = @intCast(p >> 256);
-
-    // Perform Montgomery reduction
-    const q: u256 = lo *% MOD_INV;
-    const m: u256 = @intCast((@as(u512, q) * MOD) >> 256);
-    if (hi < m) return hi + (MOD - m);
-    return hi - m;
-  }
-
-  /// Raise a number in Montgomery space to a power of an integer
-  fn power(x: u256, n: comptime_int) u256 {
-    var a = comptime from(1);
-    var b = x;
-
-    var t = n;
-    while (t > 0) : (t >>= 1) {
-      if (t & 1 != 0) {
-        a = multiply(a, b);
-      }
-      b = multiply(b, b);
+/// Construct an RNG from an arbitrary length entropy sequence
+pub fn fromBytes(data: []const u8) Fmc256 {
+  const S = struct {
+    inline fn mix(state: *[4]u64, chunk: u64) void {
+      const m = @as(u128, state[0]) * MUL + state[3] + chunk;
+      state[0] = state[1];
+      state[1] = state[2];
+      state[2] = @truncate(m);
+      state[3] = @intCast(m >> 64);
     }
-
-    return a;
-  }
-
-  /// Convert a number into Montgomery space, or x -> xr
-  fn from(x: u256) u256 {
-    const r2 = comptime ((1 << 512) % MOD);
-    return multiply(x, r2);
-  }
-};
-
-/// Modular inverse of 2^64 in Montgomery space
-/// This is the multiplier of the MCG that the generator simulates
-const B_INV = Montgomery.power(Montgomery.from(1 << 64), MOD - 2);
-
-/// Equivalent to advancing the generator N times
-pub fn jump(self: *Fmc256, N: comptime_int) void {
-  const a = comptime Montgomery.power(B_INV, N);
-
-  const s = (
-    (@as(u256, self.state[0]) << 0) |
-    (@as(u256, self.state[1]) << 64) |
-    (@as(u256, self.state[2]) << 128) |
-    (@as(u256, self.carry) << 192)
-  );
-
-  const result = Montgomery.multiply(s, a);
-
-  self.state[0] = @truncate(result >> 0);
-  self.state[1] = @truncate(result >> 64);
-  self.state[2] = @truncate(result >> 128);
-  self.carry = @intCast(result >> 192);
-}
-
-/// Construct an RNG from a 256-bit seed
-pub fn fromSeed(seed: *const [4]u64) Fmc256 {
-  // Some requirements for seeding:
-  // - The carry must be less than MUL - 1
-  // - The state and carry cannot be all zero
-  // For simplicity, initialize the state with any 192-bit seed and set the
-  // carry to a value between 1 and MUL - 1
-  var rng: Fmc256 = .{
-    .state = seed[0..3].*,
-    .carry = seed[3] % (MUL - 2) + 1,
   };
 
-  rng.jump(JUMP_PHI);
-  return rng;
+  var state: [4]u64 = @splat(0);
+  const step1 = @sizeOf(u64);
+  const step3 = 3 * step1;
+  var idx: usize = 0;
+
+  while (idx + step3 <= data.len) : (idx += step3) {
+    var chunk: [3]u64 = undefined;
+    const chunk_ptr: *[step3]u8 = @ptrCast(&chunk);
+    @memcpy(chunk_ptr, data[idx..idx + step3]);
+
+    var carry = state[3];
+    inline for (state[0..3], &chunk) |*item, x| {
+      const limb = if (comptime endian == .little) x else @byteSwap(x);
+
+      const m = @as(u128, item.*) * MUL + carry + limb;
+      item.* = @truncate(m);
+      carry = @intCast(m >> 64);
+    }
+    state[3] = carry;
+  }
+
+  duff: switch ((data.len - idx) / step1) {
+    inline 1...2 => |x| {
+      var chunk: u64 = undefined;
+      const chunk_ptr: *[step1]u8 = @ptrCast(&chunk);
+      @memcpy(chunk_ptr, data[idx..idx + step1]);
+      if (comptime endian != .little) chunk = @byteSwap(chunk);
+
+      S.mix(&state, chunk);
+      idx += step1;
+      continue :duff comptime x - 1;
+    },
+    inline 0 => {},
+    else => unreachable,
+  }
+
+  if (idx < data.len) {
+    var chunk: u64 = 0;
+    duff: switch (data.len - idx) {
+      inline 1...(step1 - 1) => |x| {
+        const nx = comptime x - 1;
+        chunk = (chunk << 8) | data[idx + nx];
+        continue :duff nx;
+      },
+      inline 0 => {},
+      else => unreachable,
+    }
+
+    S.mix(&state, chunk);
+  }
+
+  const v: u256 = @bitCast(state);
+  if (v == 0) state[0] = 1;
+  return .{ .state = state };
+}
+
+/// Generate the next 64-bit output from the generator and advance state by one
+pub inline fn next(self: *Fmc256) u64 {
+  const result = self.state[2] ^ self.state[3];
+  const m = @as(u128, self.state[0]) * MUL + self.state[3];
+  self.state[0] = self.state[1];
+  self.state[1] = self.state[2];
+  self.state[2] = @truncate(m);
+  self.state[3] = @intCast(m >> 64);
+  return result;
 }
 
 /// Fast but biased bounded number generator using Lemire's reduction
@@ -122,5 +110,3 @@ pub fn fromSeed(seed: *const [4]u64) Fmc256 {
 pub fn bounded(self: *Fmc256, range: u64) u64 {
   return @truncate((@as(u128, self.next()) * range) >> 64);
 }
-
-const common = @import("common.zig");
