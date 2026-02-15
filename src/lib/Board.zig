@@ -236,33 +236,4 @@ pub fn hash(self: Board, bits: comptime_int) common.Uint(bits) {
   return @intCast(h >> (64 - bits));
 }
 
-pub fn sort(items: []Board, scratch: []Board) void {
-  const S = struct {
-    inline fn pass(in: []Board, out: []Board, comptime idx: u2) void {
-      const shift = comptime @as(u6, idx) * 16;
-      var count: [65536]u32 = comptime @splat(0);
-      for (in) |item| {
-        const chunk: u16 = @truncate(item.data >> shift);
-        count[chunk] += 1;
-      }
-      var acc: u32 = 0;
-      for (&count) |*item| {
-        const old = acc;
-        acc += item.*;
-        item.* = old;
-      }
-      for (in) |item| {
-        const chunk: u16 = @truncate(item.data >> shift);
-        out[count[chunk]] = item;
-        count[chunk] += 1;
-      }
-    }
-  };
-
-  S.pass(items, scratch, 0);
-  S.pass(scratch, items, 1);
-  S.pass(items, scratch, 2);
-  S.pass(scratch, items, 3);
-}
-
 const common = @import("common.zig");
