@@ -50,20 +50,21 @@ pub fn main() !void {
     try writer.flush();
   }
 
-  try writer.print("Speed: {d} moves/s\n", .{
-    total_move * std.time.ns_per_s / @as(u64, @intFromFloat(total_time)),
+  const stats: Stats = .fromResult(.{
+    .final_board = board,
+    .four_count = four_count,
+    .total_time = total_time,
+    .total_moves = total_move,
   });
-  try writer.print("Game over! Max tile: {d} - Score: {d}\n", .{
-    @as(u16, 1) << board.maxTile(),
-    board.score(four_count),
-  });
+
+  try stats.display(writer);
   try writer.flush();
 }
 
-const Expectimax = @import("lib/Expectimax.zig");
-const Bfs = @import("lib/Bfs.zig");
 const std = @import("std");
 const Fmc256 = @import("lib/Fmc256.zig");
 const Board = @import("lib/Board.zig");
 const Heuristic = @import("lib/Heuristic.zig");
-const common = @import("lib/common.zig");
+const Bfs = @import("lib/Bfs.zig");
+const Expectimax = @import("lib/Expectimax.zig");
+const Stats = @import("lib/Stats.zig");
