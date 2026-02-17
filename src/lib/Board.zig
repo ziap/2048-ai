@@ -155,8 +155,8 @@ pub const MoveTable = struct {
     var result: [4]Board = undefined;
 
     inline for (0..4) |_| {
-      const row = data >> 48;
-      const col = transposed >> 48;
+      const row: u16 = @intCast(data >> 48);
+      const col: u16 = @intCast(transposed >> 48);
       data <<= 16;
       transposed <<= 16;
 

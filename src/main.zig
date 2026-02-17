@@ -101,7 +101,7 @@ pub fn main() !void {
     .write_lock = &write_lock,
   };
 
-  const total_games: u32 = 16;
+  const total_games: u32 = 100;
 
   const thread_count: u32 = @intCast(try std.Thread.getCpuCount());
   const bg_threads = thread_count - 1;
@@ -149,7 +149,7 @@ pub fn main() !void {
   const writer = &stdout.interface;
 
   try result.display(writer, true);
-  try writer.print("Wall speed: {d:.2} moves/s\n", .{ wall_speed });
+  try writer.print("Wall Speed: {d:.2} moves/s\n", .{ wall_speed });
   try writer.flush();
 }
 

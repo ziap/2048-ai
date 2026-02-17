@@ -39,7 +39,7 @@ pub fn new(move_table: *const Board.MoveTable, heuristic: *const Heuristic) Expe
   };
 }
 
-fn expectNode(self: *Expectimax, board: Board, depth: u8) f32 {
+pub fn expectNode(self: *Expectimax, board: Board, depth: u8) f32 {
   if (depth == 0) {
     return self.heuristic.evaluate(board);
   }
