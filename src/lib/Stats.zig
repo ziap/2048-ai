@@ -70,7 +70,7 @@ pub fn display(self: Stats, out: anytype, comptime detail: bool) !void {
   try out.writeAll("================ STATISTICS ================\n");
   try out.print("Games Played : {d}\n", .{self.total_games});
   try out.print("Score        : Max {d} | Avg {d:.2}\n", .{ self.best_score, avg_score });
-  try out.print("Performance  : {d:.1} moves/s | {d:.3}s cpu time\n", .{ speed, total_time });
+  try out.print("Performance  : {d:.2} moves/s | {d:.3}s cpu time\n", .{ speed, total_time });
   if (comptime detail) {
     try out.writeAll("\n--- Reaching Rate ---\n");
     

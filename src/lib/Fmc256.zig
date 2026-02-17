@@ -110,3 +110,115 @@ pub inline fn next(self: *Fmc256) u64 {
 pub fn bounded(self: *Fmc256, range: u64) u64 {
   return @truncate((@as(u128, self.next()) * range) >> 64);
 }
+
+pub const Jump = struct {
+  /// The algorithm's implicit modulus: MUL * 2^192 - 1
+  const MOD = (MUL << 192) - 1;
+
+  data: [4]u64,
+
+  /// Montogomery style multiply-reduce routine, computes x*y*R^-1, R=2^320
+  fn multiply(x: *const [4]u64, y: *const [4]u64) [4]u64 {
+    var state: [4]u64 = @splat(0);
+
+    inline for (y) |limb| {
+      var ls: [4]u64 = undefined;
+      var hs: [4]u64 = undefined;
+
+      inline for (&ls, &hs, x) |*l, *h, s| {
+        const m = @as(u128, s) * limb;
+        l.* = @truncate(m);
+        h.* = @intCast(m >> 64);
+      }
+
+      var as: [4]u128 = undefined;
+      inline for (&as, &hs, state) |*a, h, s| {
+        a.* = @as(u128, s) + h;
+      }
+
+      as[0] += ls[1];
+      as[1] += ls[2] + (as[0] >> 64);
+      as[2] += ls[3] + (as[1] >> 64) + @as(u128, ls[0]) * MUL;
+      as[3] += as[2] >> 64;
+
+      const m = @as(u128, MUL) * @as(u64, @truncate(as[0])) + as[3];
+      state[0] = @truncate(as[1]);
+      state[1] = @truncate(as[2]);
+      state[2] = @truncate(m);
+      state[3] = @intCast(m >> 64);
+    }
+
+    return state;
+  }
+
+  /// Split a 256-bit integer into four 64-bit little-endian limbs.  
+  fn toParts(n: u256) [4]u64 {
+    return .{
+      @truncate(n),
+      @truncate(n >> 64),
+      @truncate(n >> 128),
+      @intCast(n >> 192),
+    };
+  }
+
+  /// Compute the jump multiplier multiplied by R that corresponds to advancing
+  /// the generator by 'n' steps in O(log n)
+  pub fn steps(n: u256) Jump {
+    const r = (1 << 320) % MOD;
+    const m = MUL << 128;
+
+    if (@inComptime()) {
+      // Use explicit mod, so only initialize with R instead of 1
+      var a: u256 = r;
+      var b: u256 = m;
+
+      var t = n;
+      while (t > 0) : (t >>= 1) {
+        if (t & 1 != 0) a = @intCast(@as(u512, a) * b % MOD);
+        b = @intCast(@as(u512, b) * b % MOD);
+      }
+
+      return .{ .data = toParts(a) };
+    }
+
+    // Use the multiply-reduction routine, so both the identity and base needs
+    // to be multiplied by R
+    var a = comptime toParts(r);
+    var b = comptime toParts(m * r % MOD);
+
+    var t = n;
+    while (t > 0) : (t >>= 1) {
+      if (t & 1 != 0) a = multiply(&a, &b);
+      b = multiply(&b, &b);
+    }
+
+    return .{ .data = a };
+  }
+
+  /// The default step size for generating multiple uncorrelated generators
+  /// Equals "golden ratio" - 1 when multiplied by the period of the generator
+  /// Repeatedly jumping produces a low-discrepancy sequence of generators
+  pub const default = default: {
+    const a = (MOD - 1) / 2;
+    const aa = a * a;
+
+    var x = a / 2;
+    var dec = false;
+
+    // Newton's method iterations
+    while (true) {
+      const nx = (aa + x * x) / (a + x + x);
+      if (x == nx or (dec and nx > x)) break;
+
+      dec = nx < x;
+      x = nx;
+    }
+
+    break :default steps(x);
+  };
+};
+
+/// Advance the generator by the specified `Jump` multiplier
+pub inline fn jump(self: *Fmc256, n: Jump) void {
+  self.state = Jump.multiply(&self.state, &n.data);
+}
