@@ -78,21 +78,24 @@ pub fn main() !void {
 
   var stats: ?Stats = null;
 
-  var thread = try std.Thread.spawn(.{}, run_games, .{
-    RunOpts {
-      .rng = &rng,
-      .move_table = &move_table,
-      .writer = writer,
-      .search = .{
-        .expectimax = expectimax,
-        .bfs = bfs,
-      },
-      .out = &stats,
-      .id = 0,
-      .iter = 10,
-    }
-  });
-  defer thread.join();
+  {
+    var thread = try std.Thread.spawn(.{}, run_games, .{
+      RunOpts {
+        .rng = &rng,
+        .move_table = &move_table,
+        .writer = writer,
+        .search = .{
+          .expectimax = expectimax,
+          .bfs = bfs,
+        },
+        .out = &stats,
+        .id = 0,
+        .iter = 10,
+      }
+    });
+
+    defer thread.join();
+  }
 
   if (stats) |result| {
     try result.display(writer, true);
