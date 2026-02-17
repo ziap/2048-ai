@@ -118,20 +118,19 @@ pub fn main() !void {
     }
 
     const work_per_thread = total_games / thread_count;
+    const remaining = total_games % thread_count;
 
     const threads = try allocator.alloc(std.Thread, bg_threads);
     for (threads, workers, stats) |*thread, *worker, *stat| {
       thread.* = try std.Thread.spawn(.{}, Worker.run_games, .{
         worker,
-        work_per_thread,
+        if (worker.id < remaining) work_per_thread + 1 else work_per_thread,
         stat,
       });
     }
 
-    const remaining = total_games % thread_count;
-
     var worker: Worker = try .new(0, &rng, shared, allocator);
-    try worker.run_games(work_per_thread + remaining, &result);
+    try worker.run_games(if (remaining > 0) work_per_thread + 1 else work_per_thread, &result);
 
     for (threads) |*thread| thread.join();
   }
