@@ -8,7 +8,7 @@ best_game: Board,
 best_score: u32,
 max_tiles: @Vector(16, u32),
 
-const empty: Stats = .{
+pub const empty: Stats = .{
   .total_games = 0,
   .total_time = 0,
   .total_score = 0,
@@ -49,6 +49,7 @@ pub fn combine(self: Stats, other: Stats) Stats {
     self.best_score,
   };
   return .{
+    .total_games = self.total_games + other.total_games,
     .total_time = self.total_time + other.total_time,
     .total_score = self.total_score + other.total_score,
     .total_moves = self.total_moves + other.total_moves,
@@ -58,7 +59,7 @@ pub fn combine(self: Stats, other: Stats) Stats {
   };
 }
 
-pub fn display(self: Stats, out: anytype) !void {
+pub fn display(self: Stats, out: anytype, comptime detail: bool) !void {
   if (self.total_games == 0) return;
 
   const total_games: f64 = @floatFromInt(self.total_games);
@@ -70,24 +71,25 @@ pub fn display(self: Stats, out: anytype) !void {
   try out.print("Games Played : {d}\n", .{self.total_games});
   try out.print("Score        : Max {d} | Avg {d:.2}\n", .{ self.best_score, avg_score });
   try out.print("Performance  : {d:.1} moves/s | {d:.3}s cpu time\n", .{ speed, total_time });
+  if (comptime detail) {
+    try out.writeAll("\n--- Reaching Rate ---\n");
+    
+    var accumulated: u32 = 0;
 
-  try out.writeAll("\n--- Reaching Rate ---\n");
-  
-  var accumulated: u32 = 0;
+    var i: u4 = 15;
+    while (accumulated < self.total_games) : (i -= 1) {
+      accumulated += self.max_tiles[i];
 
-  var i: u4 = 15;
-  while (accumulated < self.total_games) : (i -= 1) {
-    accumulated += self.max_tiles[i];
-
-    if (accumulated > 0) {
-      const tile_val = @as(u32, 1) << @intCast(i);
-      const percent = @as(f64, @floatFromInt(accumulated)) * 100.0 / total_games;
-      try out.print("{d: <5}: {d:.1}%\n", .{ tile_val, percent });
+      if (accumulated > 0) {
+        const tile_val = @as(u32, 1) << @intCast(i);
+        const percent = @as(f64, @floatFromInt(accumulated)) * 100.0 / total_games;
+        try out.print("{d: <5}: {d:.1}%\n", .{ tile_val, percent });
+      }
     }
-  }
 
-  try out.writeAll("\n--- Best Final State ---\n");
-  try self.best_game.display(out);
+    try out.writeAll("\n--- Best Final State ---\n");
+    try self.best_game.display(out);
+  }
   try out.writeAll("============================================\n");
 }
 
