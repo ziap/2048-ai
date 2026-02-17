@@ -1,9 +1,5 @@
 const std = @import("std");
 
-const Board = struct {
-  data: u64,
-};
-
 pub fn build(b: *std.Build) void {
   const target = b.standardTargetOptions(.{});
   const optimize = b.standardOptimizeOption(.{});

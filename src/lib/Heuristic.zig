@@ -2,19 +2,34 @@ const Heuristic = @This();
 
 score_table: [65536]f32,
 
-const SCORE_LOST_PENALTY = 200000.0;
-const SCORE_MONOTONICITY_POWER = 4.0;
-const SCORE_MONOTONICITY_WEIGHT = 47.0;
-const SCORE_SUM_POWER = 3.5;
-const SCORE_SUM_WEIGHT = 11.0;
-const SCORE_MERGES_WEIGHT = 700.0;
-const SCORE_EMPTY_WEIGHT = 270.0;
-
-inline fn pow(x: f32, y: comptime_float) f32 {
-  return @exp2(@log2(x) * y);
-}
+const LOST_PENALTY = 200000.0;
+const MONO_POWER = 4.0;
+const MONO_WEIGHT = 47.0;
+const SUM_POWER = 3.5;
+const SUM_WEIGHT = 11.0;
+const MERGES_WEIGHT = 700.0;
+const EMPTY_WEIGHT = 270.0;
 
 pub fn new() Heuristic {
+  const pow_tables = comptime pow_tables: {
+    var sum_pow_table: [16]f32 = undefined;
+    var mono_pow_table: [16]f32 = undefined;
+
+    for (1..16) |idx| {
+      const fidx: f32 = @floatFromInt(idx);
+      sum_pow_table[idx] = @exp2(@log2(fidx) * SUM_POWER);
+      mono_pow_table[idx] = @exp2(@log2(fidx) * MONO_POWER);
+    }
+
+    sum_pow_table[0] = 0;
+    mono_pow_table[0] = 0;
+
+    break :pow_tables .{
+      .sum = sum_pow_table,
+      .mono = mono_pow_table,
+    };
+  };
+
   var table: Heuristic = undefined;
   for (&table.score_table, 0..) |*entry, row| {
     const line = [_]u4 {
@@ -31,8 +46,8 @@ pub fn new() Heuristic {
     var prev: u4 = 0;
     var counter: u32 = 0;
 
-    for (line) |rank| {
-      sum += pow(@floatFromInt(rank), SCORE_SUM_POWER);
+    inline for (line) |rank| {
+      sum += pow_tables.sum[rank];
 
       if (rank == 0) {
         empty += 1;
@@ -50,25 +65,25 @@ pub fn new() Heuristic {
 
     if (counter > 0) merges += 1 + counter;
 
-    var monotonicity_left: f32 = 0;
-    var monotonicity_right: f32 = 0;
+    var mono_left: f32 = 0;
+    var mono_right: f32 = 0;
 
     inline for (1..4) |i| {
-      const l = pow(@floatFromInt(line[i - 1]), SCORE_MONOTONICITY_POWER);
-      const r = pow(@floatFromInt(line[i]), SCORE_MONOTONICITY_POWER);
+      const l = pow_tables.mono[line[i - 1]];
+      const r = pow_tables.mono[line[i]];
 
       if (line[i - 1] > line[i]) {
-        monotonicity_left += l - r;
+        mono_left += l - r;
       } else {
-        monotonicity_right += r - l;
+        mono_right += r - l;
       }
     }
 
-    entry.* = SCORE_LOST_PENALTY +
-      SCORE_EMPTY_WEIGHT * @as(f32, @floatFromInt(empty)) +
-      SCORE_MERGES_WEIGHT * @as(f32, @floatFromInt(merges)) -
-      SCORE_MONOTONICITY_WEIGHT * @min(monotonicity_left, monotonicity_right) -
-      SCORE_SUM_WEIGHT * sum;
+    entry.* = LOST_PENALTY +
+      EMPTY_WEIGHT * @as(f32, @floatFromInt(empty)) +
+      MERGES_WEIGHT * @as(f32, @floatFromInt(merges)) -
+      MONO_WEIGHT * @min(mono_left, mono_right) -
+      SUM_WEIGHT * sum;
   }
 
   return table;

@@ -101,7 +101,7 @@ pub fn main() !void {
     .write_lock = &write_lock,
   };
 
-  const total_games: u32 = 100;
+  const total_games: u32 = 16;
 
   const thread_count: u32 = @intCast(try std.Thread.getCpuCount());
   const bg_threads = thread_count - 1;
