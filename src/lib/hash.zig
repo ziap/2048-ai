@@ -45,44 +45,14 @@ pub fn stringMap(Value: type, kvs: anytype) fn ([]const u8) ?Value {
   const fields = type_info.@"struct".fields;
 
   const S = struct {
-    const keys = keys: {
-      var result: [fields.len + 1][]const u8 = undefined;
-      for (fields, result[0..fields.len]) |field, *key| {
-        key.* = field.name;
-      }
-      result[fields.len] = "";
-      break :keys result;
-    };
-
-    const values = values: {
-      var result: [fields.len]Value = undefined;
-      for (fields, &result) |field, *value| {
-        value.* = @field(kvs, field.name);
-      }
-      break :values result;
-    };
-
     const table = table: {
-      const shift = shift: {
-        var shift: comptime_int = 0;
-        while ((1 << shift) < fields.len + 1) shift += 1;
-        break :shift shift;
-      };
-
-      const Index = @Type(.{
-        .int = .{
-          .signedness = .unsigned,
-          .bits = shift,
-        },
-      });
-
       const table_size = fields.len * 3 / 2;
-      var indices: [table_size]Index = @splat(fields.len);
+      var indices: [table_size]u32 = @splat(fields.len);
       var probes: [table_size]comptime_int = @splat(0);
       var max_probe = 0;
 
-      for (0..fields.len) |i| {
-        var h = hash(keys[i], table_size);
+      for (fields, 0..) |field, i| {
+        var h = hash(field.name, table_size);
 
         var index = i;
         var probe = 0;
@@ -107,9 +77,29 @@ pub fn stringMap(Value: type, kvs: anytype) fn ([]const u8) ?Value {
         probes[h] = probe;
       }
 
+      var wrapped = indices ++ indices[0..max_probe].*;
+      var values: [wrapped.len]Value = undefined;
+
+      var pool: []const u8 = &.{};
+      var ptr = 0;
+
+      for (&wrapped, &values) |*index, *value| {
+        if (index.* < fields.len) {
+          const s = fields[index.*].name;
+          index.* = ptr;
+          value.* = @field(kvs, s);
+          pool = pool ++ s;
+          ptr += s.len;
+        } else {
+          index.* = ptr;
+        }
+      }
+
       break :table .{
+        .pool = pool,
         .size = table_size,
-        .indices = indices ++ indices[0..max_probe].*,
+        .values = values,
+        .indices = wrapped ++ .{ ptr },
         .max_probe = max_probe,
       };
     };
@@ -117,16 +107,20 @@ pub fn stringMap(Value: type, kvs: anytype) fn ([]const u8) ?Value {
     fn get(key: []const u8) ?Value {
       const h = hash(key, table.size);
       inline for (0..table.max_probe + 1) |probe| {
-        const idx = table.indices[h + probe];
-        if (mem.eql(u8, key, keys[idx])) {
-          return values[idx];
+        const l = table.indices[h + probe];
+        const r = table.indices[h + probe + 1];
+
+        if (mem.eql(u8, key, table.pool[l..r])) {
+          return table.values[h + probe];
         }
       }
       return null;
     }
 
     comptime {
-      for (keys[0..fields.len], values) |key, value| {
+      for (fields) |field| {
+        const key = field.name;
+        const value = @field(kvs, key);
         if (get(key) != value) unreachable;
       }
     }
