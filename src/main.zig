@@ -84,7 +84,11 @@ pub fn main() !void {
   var arena: std.heap.ArenaAllocator = .init(std.heap.page_allocator);
   defer arena.deinit();
   const allocator = arena.allocator();
-  
+
+  var buffer: [4096]u8 = undefined;
+  var stdout = std.fs.File.stdout().writer(&buffer);
+  const writer = &stdout.interface;
+
   var rng: Fmc256 = rng: {
     var seed: [4]u64 = undefined;
     try std.posix.getrandom(@ptrCast(&seed));
@@ -100,57 +104,62 @@ pub fn main() !void {
   const bg_threads = thread_count - 1;
 
   var result: Stats = .empty;
-  const stats = try allocator.alloc(Stats, bg_threads);
-  @memset(stats, .empty);
 
-  {
-    var write_lock: std.Thread.Mutex = .{};
-    const shared: Worker.Shared = .{
-      .move_table = &move_table,
-      .heuristic = &heuristic,
-      .write_lock = &write_lock,
+  var write_lock: std.Thread.Mutex = .{};
+  const shared: Worker.Shared = .{
+    .move_table = &move_table,
+    .heuristic = &heuristic,
+    .write_lock = &write_lock,
+  };
+
+  if (bg_threads > 0) {
+    const stats = try allocator.alloc(Stats, bg_threads);
+    @memset(stats, .empty);
+
+    _ = {
+      const workers = try allocator.alloc(Worker, bg_threads);
+
+      for (workers, 1..) |*worker, id| {
+        worker.* = try .new(@intCast(id), &rng, shared, allocator);
+      }
+
+      const work_per_thread = total_games / thread_count;
+      const remaining = total_games % thread_count;
+
+      const threads = try allocator.alloc(std.Thread, bg_threads);
+      for (threads, workers, stats) |*thread, *worker, *stat| {
+        thread.* = try std.Thread.spawn(.{}, Worker.run_games, .{
+          worker,
+          if (worker.id < remaining) work_per_thread + 1 else work_per_thread,
+          stat,
+        });
+      }
+
+      var worker: Worker = try .new(0, &rng, shared, allocator);
+      try worker.run_games(if (remaining > 0) work_per_thread + 1 else work_per_thread, &result);
+
+      for (threads) |*thread| thread.join();
     };
 
-    const workers = try allocator.alloc(Worker, bg_threads);
-
-    for (workers, 1..) |*worker, id| {
-      worker.* = try .new(@intCast(id), &rng, shared, allocator);
+    var longest_time = result.total_time;
+    for (stats) |stat| {
+      result = result.combine(stat);
+      longest_time = @max(longest_time, stat.total_time);
     }
 
-    const work_per_thread = total_games / thread_count;
-    const remaining = total_games % thread_count;
+    const wall_time = longest_time / 1e9;
+    const wall_speed = @as(f64, @floatFromInt(result.total_moves)) / wall_time;
 
-    const threads = try allocator.alloc(std.Thread, bg_threads);
-    for (threads, workers, stats) |*thread, *worker, *stat| {
-      thread.* = try std.Thread.spawn(.{}, Worker.run_games, .{
-        worker,
-        if (worker.id < remaining) work_per_thread + 1 else work_per_thread,
-        stat,
-      });
-    }
-
+    try result.display(writer, true);
+    try writer.print("Wall Speed: {d:.2} moves/s\n", .{ wall_speed });
+    try writer.flush();
+  } else {
     var worker: Worker = try .new(0, &rng, shared, allocator);
-    try worker.run_games(if (remaining > 0) work_per_thread + 1 else work_per_thread, &result);
+    try worker.run_games(total_games, &result);
 
-    for (threads) |*thread| thread.join();
+    try result.display(writer, true);
+    try writer.flush();
   }
-
-  var longest_time = result.total_time;
-  for (stats) |stat| {
-    result = result.combine(stat);
-    longest_time = @max(longest_time, stat.total_time);
-  }
-
-  const wall_time = longest_time / 1e9;
-  const wall_speed = @as(f64, @floatFromInt(result.total_moves)) / wall_time;
-
-  var buffer: [4096]u8 = undefined;
-  var stdout = std.fs.File.stdout().writer(&buffer);
-  const writer = &stdout.interface;
-
-  try result.display(writer, true);
-  try writer.print("Wall Speed: {d:.2} moves/s\n", .{ wall_speed });
-  try writer.flush();
 }
 
 const std = @import("std");
