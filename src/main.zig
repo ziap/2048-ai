@@ -66,7 +66,6 @@ const Worker = struct {
         .total_moves = total_move,
       }));
 
-
       try writer.print("Thread #{d} report:\n", .{ self.id });
       try stats.display(writer, false);
       try writer.writeAll("\n");
