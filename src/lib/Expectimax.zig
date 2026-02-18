@@ -1,7 +1,7 @@
 const Expectimax = @This();
 
 const Cache = struct {
-  const CACHE_BITS = 17;
+  const CACHE_BITS = 18;
   const CACHE_SIZE = 1 << CACHE_BITS;
 
   depths: [CACHE_SIZE]u8,
@@ -27,7 +27,7 @@ move_table: *const Board.MoveTable,
 heuristic: *const Heuristic,
 cache: Cache,
 
-pub fn new(move_table: *const Board.MoveTable, heuristic: *const Heuristic) Expectimax {
+pub inline fn new(move_table: *const Board.MoveTable, heuristic: *const Heuristic) Expectimax {
   return .{
     .move_table = move_table,
     .heuristic = heuristic,

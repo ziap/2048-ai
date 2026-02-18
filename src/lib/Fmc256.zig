@@ -107,7 +107,7 @@ pub inline fn next(self: *Fmc256) u64 {
 
 /// Fast but biased bounded number generator using Lemire's reduction
 /// In this application the range is usually small so the bias is negligible
-pub fn bounded(self: *Fmc256, range: u64) u64 {
+pub inline fn bounded(self: *Fmc256, range: u64) u64 {
   return @truncate((@as(u128, self.next()) * range) >> 64);
 }
 

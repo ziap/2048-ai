@@ -41,7 +41,7 @@ pub fn display(self: Board, out: anytype) !void {
   }
 }
 
-pub fn emptyPos(self: Board) u64 {
+pub inline fn emptyPos(self: Board) u64 {
   var b = self.data;
   b |= (b >> 2) & 0x3333333333333333;
   b |= (b >> 1);
@@ -68,7 +68,7 @@ pub fn addTile(self: Board, rng: *Fmc256) struct { Board, u1 } {
   };
 }
 
-pub fn new(rng: *Fmc256) struct { Board, u2 } {
+pub inline fn new(rng: *Fmc256) struct { Board, u2 } {
   const board: Board = .{ .data = 0 };
   const board1, const is_four1 = board.addTile(rng);
   const board2, const is_four2 = board1.addTile(rng);
@@ -76,7 +76,7 @@ pub fn new(rng: *Fmc256) struct { Board, u2 } {
   return .{ board2, @as(u2, is_four1) + @as(u2, is_four2) };
 }
 
-pub fn transpose(self: Board) Board {
+pub inline fn transpose(self: Board) Board {
   var x = self.data;
   var b = (x ^ (x >> 12)) & 0x0000f0f00000f0f0;
   x ^= b ^ (b << 12);
@@ -85,7 +85,7 @@ pub fn transpose(self: Board) Board {
   return .{ .data = x };
 }
 
-pub fn reverse16(x: u16) u16 {
+pub inline fn reverse16(x: u16) u16 {
   return (
     (x >> 12) |
     ((x >> 4) & 0x00f0) |
@@ -149,16 +149,15 @@ pub const MoveTable = struct {
   }
 
   pub fn getMoves(self: MoveTable, board: Board) [4]Board {
-    var data = board.data;
-    var transposed = board.transpose().data;
+    const data = board.data;
+    const transposed = board.transpose().data;
 
     var result: [4]Board = undefined;
 
-    inline for (0..4) |_| {
-      const row: u16 = @intCast(data >> 48);
-      const col: u16 = @intCast(transposed >> 48);
-      data <<= 16;
-      transposed <<= 16;
+    inline for (0..4) |idx| {
+      const shift = comptime (3 - idx) * 16;
+      const row: u16 = @truncate(data >> shift);
+      const col: u16 = @truncate(transposed >> shift);
 
       inline for (0..4) |dir| {
         result[dir].data <<= 16;
@@ -223,11 +222,15 @@ pub fn score(self: Board, four_count: u32) u32 {
 }
 
 pub const HASH_MUL: u64 = 0xf1357aea2e62a9c5;
-pub const HASH_INV: u64 = common.modinv(u64, HASH_MUL);
 
 // Lehmer64 PRNG hash function, a very fast but weak hash function that
 // comphensate its speed for some extra collisions
-pub fn hash(self: Board, bits: comptime_int) common.Uint(bits) {
+pub inline fn hash(self: Board, bits: comptime_int) @Type(.{
+  .int = .{
+    .signedness = .unsigned,
+    .bits = bits,
+  }
+}) {
   // MCG multiplier from: <https://arxiv.org/pdf/2001.05304>
   const h = self.data *% HASH_MUL;
 
@@ -235,5 +238,3 @@ pub fn hash(self: Board, bits: comptime_int) common.Uint(bits) {
   // statistical quality
   return @intCast(h >> (64 - bits));
 }
-
-const common = @import("common.zig");

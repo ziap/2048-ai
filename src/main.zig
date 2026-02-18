@@ -18,7 +18,7 @@ const Worker = struct {
     rng.jump(.default);
 
     const expectimax = try arena.create(Expectimax);
-    const bfs_buffer = try arena.alloc(Board, 400_000);
+    const bfs_buffer = try arena.alloc(Board, 1 << 19);
     expectimax.* = .new(shared.move_table, shared.heuristic);
 
     return .{

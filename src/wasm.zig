@@ -4,7 +4,7 @@ var bfs: Bfs = undefined;
 
 export fn init() void {
   const S = struct {
-    var bfs_buffer: [400_000]Board = undefined;
+    var bfs_buffer: [1 << 19]Board = undefined;
     var heuristic: Heuristic = undefined;
   };
 

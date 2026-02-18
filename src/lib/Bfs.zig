@@ -5,7 +5,7 @@ next: []Board,
 
 move_table: *const Board.MoveTable,
 
-pub fn new(buffer: []Board, move_table: *const Board.MoveTable) Bfs {
+pub inline fn new(buffer: []Board, move_table: *const Board.MoveTable) Bfs {
   const mid = buffer.len / 2;
   return .{
     .current = buffer[0..mid],

@@ -90,15 +90,14 @@ pub fn new() Heuristic {
 }
 
 pub fn evaluate(self: *const Heuristic, board: Board) f32 {
-  var data = board.data;
-  var transposed = board.transpose().data;
+  const data = board.data;
+  const transposed = board.transpose().data;
   var score: f32 = 0;
 
-  for (0..4) |_| {
-    const row: u16 = @truncate(data);
-    const col: u16 = @truncate(transposed);
-    data >>= 16;
-    transposed >>= 16;
+  inline for (0..4) |idx| {
+    const shift = comptime idx * 16;
+    const row: u16 = @truncate(data >> shift);
+    const col: u16 = @truncate(transposed >> shift);
 
     score += self.score_table[row] + self.score_table[col];
   }
@@ -107,4 +106,3 @@ pub fn evaluate(self: *const Heuristic, board: Board) f32 {
 }
 
 const Board = @import("Board.zig");
-const common = @import("common.zig");
