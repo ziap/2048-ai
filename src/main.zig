@@ -93,13 +93,6 @@ pub fn main() !void {
 
   const move_table: Board.MoveTable = .new();
   const heuristic: Heuristic = .new();
-  var write_lock: std.Thread.Mutex = .{};
-
-  const shared: Worker.Shared = .{
-    .move_table = &move_table,
-    .heuristic = &heuristic,
-    .write_lock = &write_lock,
-  };
 
   const total_games: u32 = 100;
 
@@ -111,6 +104,13 @@ pub fn main() !void {
   @memset(stats, .empty);
 
   {
+    var write_lock: std.Thread.Mutex = .{};
+    const shared: Worker.Shared = .{
+      .move_table = &move_table,
+      .heuristic = &heuristic,
+      .write_lock = &write_lock,
+    };
+
     const workers = try allocator.alloc(Worker, bg_threads);
 
     for (workers, 1..) |*worker, id| {

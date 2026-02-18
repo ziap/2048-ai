@@ -67,7 +67,7 @@ pub fn display(self: Stats, out: anytype, comptime detail: bool) !void {
   const avg_score = @as(f64, @floatFromInt(self.total_score)) / total_games;
   const speed = @as(f64, @floatFromInt(self.total_moves)) / total_time;
 
-  try out.writeAll("================ STATISTICS ================\n");
+  try out.writeAll("=================== STATISTICS ===================\n");
   try out.print("Games Played : {d}\n", .{self.total_games});
   try out.print("Score        : Max {d} | Avg {d:.2}\n", .{ self.best_score, avg_score });
   try out.print("Performance  : {d:.2} moves/s | {d:.3}s cpu time\n", .{ speed, total_time });
@@ -89,8 +89,14 @@ pub fn display(self: Stats, out: anytype, comptime detail: bool) !void {
 
     try out.writeAll("\n--- Best Final State ---\n");
     try self.best_game.display(out);
+  } else {
+    var i: u4 = 15;
+    while (self.max_tiles[i] == 0) : (i -= 1) {}
+    const tile_val = @as(u32, 1) << @intCast(i);
+    const percent = @as(f64, @floatFromInt(self.max_tiles[i])) * 100.0 / total_games;
+    try out.print("Max tile     : {d: <5} | {d:.1}%\n", .{ tile_val, percent });
   }
-  try out.writeAll("============================================\n");
+  try out.writeAll("==================================================\n");
 }
 
 const Board = @import("Board.zig");
