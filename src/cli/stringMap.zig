@@ -1,4 +1,4 @@
-fn StringMap(V: type) type {
+pub fn StringMap(V: type) type {
   return struct {
     key_pool: []const u8,
     values: []const V,
@@ -9,7 +9,7 @@ fn StringMap(V: type) type {
     min_len: u32,
     max_len: u32,
 
-    fn get(self: @This(), key: []const u8) ?V {
+    pub fn get(self: @This(), key: []const u8) ?V {
       if (key.len < self.min_len or key.len > self.max_len) {
         return null;
       }
@@ -41,7 +41,7 @@ fn StringMap(V: type) type {
       return null;
     }
 
-    inline fn init(comptime kvs: anytype) @This() {
+    pub inline fn init(comptime kvs: anytype) @This() {
       comptime {
         const type_info = @typeInfo(@TypeOf(kvs));
         const fields = type_info.@"struct".fields;

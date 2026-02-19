@@ -6,7 +6,7 @@ pub fn build(b: *std.Build) void {
   const strip = optimize == .ReleaseFast or optimize == .ReleaseSmall;
 
   const main_exe = b.addExecutable(.{
-    .name = "main",
+    .name = "2048",
     .root_module = b.createModule(.{
       .root_source_file = b.path("src/main.zig"),
       .target = target,
