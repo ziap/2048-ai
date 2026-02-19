@@ -221,8 +221,6 @@ pub fn score(self: Board, four_count: u32) u32 {
   return result - 4 * four_count;
 }
 
-const HASH_MUL: u64 = @import("hash.zig").MUL;
-
 // Lehmer64 PRNG hash function, a very fast but weak hash function that
 // comphensate its speed for some extra collisions
 pub inline fn hash(self: Board, bits: comptime_int) @Type(.{
@@ -231,6 +229,7 @@ pub inline fn hash(self: Board, bits: comptime_int) @Type(.{
     .bits = bits,
   },
 }) {
-  const h = self.data *% HASH_MUL;
+  // MCG multiplier from: <https://arxiv.org/pdf/2001.05304>
+  const h = self.data *% 0xf1357aea2e62a9c5;
   return @intCast(h >> (64 - bits));
 }
