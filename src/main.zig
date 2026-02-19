@@ -167,4 +167,4 @@ const Board = @import("lib/Board.zig");
 const Heuristic = @import("lib/Heuristic.zig");
 const Bfs = @import("lib/Bfs.zig");
 const Expectimax = @import("lib/Expectimax.zig");
-const Stats = @import("lib/Stats.zig");
+const Stats = @import("cli/Stats.zig");

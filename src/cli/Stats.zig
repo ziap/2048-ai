@@ -99,4 +99,4 @@ pub fn display(self: Stats, out: anytype, comptime detail: bool) !void {
   try out.writeAll("==================================================\n");
 }
 
-const Board = @import("Board.zig");
+const Board = @import("../lib/Board.zig");
