@@ -1,10 +1,8 @@
 var move_table: Board.MoveTable = undefined;
 var expectimax: Expectimax = undefined;
-var bfs: Bfs = undefined;
 
 export fn init() void {
   const S = struct {
-    var bfs_buffer: [1 << 19]Board = undefined;
     var heuristic: Heuristic = undefined;
   };
 
@@ -12,13 +10,20 @@ export fn init() void {
   S.heuristic = .new();
 
   expectimax = .new(&move_table, &S.heuristic);
-  bfs = .new(&S.bfs_buffer, &move_table);
 }
 
-export fn search(board: u64, dir: u32) f32 {
-  const moves = move_table.getMoves(.{ .data = board });
+export fn search(board_data: u64, dir: u32) f32 {
+  const S = struct {
+    var bfs_buffer: [1 << 19]Board = undefined;
+  };
+  const board: Board = .{ .data = board_data };
+  const moves = move_table.getMoves(board);
+  const valid = board.filterMoves(&moves);
+  const buffer = S.bfs_buffer[0..S.bfs_buffer.len / valid.len];
+  var bfs: Bfs = .new(buffer, &move_table);
+
   const moved = moves[dir];
-  if (moved.data == board) return 0;
+  if (moved.data == board_data) return 0;
   const depth = bfs.expand(&.{ moved }).depth + 1;
   return expectimax.expectNode(moved, depth);
 }

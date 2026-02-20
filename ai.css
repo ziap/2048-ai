@@ -1,0 +1,39 @@
+.ai-buttons {
+  display: block;
+  height: 42px;
+  padding: 0 24px;
+  background: #8f7a66;
+  color: #f9f6f2;
+  border-radius: 3px;
+  text-decoration: none;
+  line-height: 42px;
+  text-align: center;
+  float: right;
+  margin-left: 24px;
+}
+
+.ai-menu:after {
+  content: "";
+  display: block;
+  clear: both;
+}
+
+@media screen and (max-width: 520px) {
+  .ai-buttons {
+    width: 135px;
+    padding: 0;
+    display: block;
+    box-sizing: border-box;
+    margin-top: 2px;
+    margin-left: 10px;
+    margin-right: 0;
+  }
+
+  .ai-buttons:last-child {
+    margin-left: 0;
+  }
+
+  .game-intro {
+    display: none;
+  }
+}
