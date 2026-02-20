@@ -5,7 +5,7 @@
   exports.init()
 
   addEventListener('message', ({ data }) => {
-    postMessage(exports.search(data.board, data.dir))
+    postMessage(exports.evaluate(data.board, data.dir))
   })
 
   postMessage('ready')

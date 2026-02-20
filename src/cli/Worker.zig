@@ -1,13 +1,13 @@
 const Worker = @This();
 
+const Expectimax = search.Expectimax(*const Heuristic, true);
+
 id: u32,
 rng: Fmc256,
 write_lock: *std.Thread.Mutex,
 move_table: *const Board.MoveTable,
-search: struct {
-  expectimax: *Expectimax,
-  bfs: Bfs,
-},
+expectimax: *Expectimax,
+bfs: Bfs,
 
 pub const Shared = struct {
   move_table: *const Board.MoveTable,
@@ -28,10 +28,8 @@ pub fn new(id: u32, rng: *Fmc256, shared: Shared, arena: std.mem.Allocator) !Wor
     .rng = rng.*,
     .write_lock = shared.write_lock,
     .move_table = shared.move_table,
-    .search = .{
-      .expectimax = expectimax,
-      .bfs = .new(bfs_buffer, shared.move_table),
-    },
+    .expectimax = expectimax,
+    .bfs = .new(bfs_buffer, shared.move_table),
   };
 }
 
@@ -41,7 +39,7 @@ pub fn run_games(self: *Worker, iter: u32, out: *Stats) !void {
   const writer = &stdout.interface;
 
   var stats: Stats = .empty;
-  var bfs = self.search.bfs;
+  var bfs = self.bfs;
 
   for (0..iter) |_| {
     var board: Board, var four_count: u32 = Board.new(&self.rng);
@@ -54,7 +52,7 @@ pub fn run_games(self: *Worker, iter: u32, out: *Stats) !void {
       const valid = board.filterMoves(&moves);
       var timer = try std.time.Timer.start();
       const depth = bfs.expand(valid.moves[0..valid.len]).depth + 1;
-      const dir = self.search.expectimax.search(board, depth) orelse break;
+      const dir = self.expectimax.search(board, depth) orelse break;
       total_time += @as(f64, @floatFromInt(timer.read()));
       total_move += 1;
       board, const is_four = moves[dir].addTile(&self.rng);
@@ -85,6 +83,6 @@ const Fmc256 = @import("../lib/Fmc256.zig");
 const Board = @import("../lib/Board.zig");
 const Heuristic = @import("../lib/Heuristic.zig");
 const Bfs = @import("../lib/Bfs.zig");
-const Expectimax = @import("../lib/Expectimax.zig");
+const search = @import("../lib/search.zig");
 
 const Stats = @import("Stats.zig");

@@ -1,3 +1,5 @@
+const Expectimax = search.Expectimax(*const Heuristic, true);
+
 var move_table: Board.MoveTable = undefined;
 var expectimax: Expectimax = undefined;
 
@@ -12,7 +14,7 @@ export fn init() void {
   expectimax = .new(&move_table, &S.heuristic);
 }
 
-export fn search(board_data: u64, dir: u32) f32 {
+export fn evaluate(board_data: u64, dir: u32) f32 {
   const S = struct {
     var bfs_buffer: [1 << 19]Board = undefined;
   };
@@ -31,4 +33,4 @@ export fn search(board_data: u64, dir: u32) f32 {
 const Board = @import("lib/Board.zig");
 const Heuristic = @import("lib/Heuristic.zig");
 const Bfs = @import("lib/Bfs.zig");
-const Expectimax = @import("lib/Expectimax.zig");
+const search = @import("lib/search.zig");
