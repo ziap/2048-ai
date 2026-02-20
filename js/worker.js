@@ -1,12 +1,11 @@
-;(async () => {
-  const wasm = await WebAssembly.instantiateStreaming(fetch('../zig-out/main.wasm'))
-  const exports = wasm.instance.exports
+;addEventListener('message', async ({ data: { module, dir } }) => {
+  const { exports } = await WebAssembly.instantiate(module)
 
   exports.init()
 
-  addEventListener('message', ({ data }) => {
-    postMessage(exports.evaluate(data.board, data.dir))
+  addEventListener('message', ({ data: board }) => {
+    postMessage(exports.evaluate(board, dir))
   })
 
   postMessage('ready')
-})()
+}, { once: true })

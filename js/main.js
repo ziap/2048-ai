@@ -1,14 +1,16 @@
 import {GameManager} from "../vendor/2048.min.js"
 
 /**
+ * @param {WebAssembly.Module} module
  * @param {number} workerCount 
  * @returns {Promise<Worker[]>}
  */
-function createWorkers(workerCount) {
+function createWorkers(module, workerCount) {
   /** @type {Promise<Worker>[]} */
   const workers = new Array(workerCount)
   for (let i = 0; i < workerCount; ++i) {
     const worker = new Worker('./js/worker.js')
+    worker.postMessage({ module, dir: i })
 
     workers[i] = new Promise(resolve => {
       worker.addEventListener('message', e => {
@@ -28,7 +30,8 @@ window.requestAnimationFrame(async () => {
 
   let aiRunning = false
 
-  const workers = await createWorkers(4)
+  const module = await WebAssembly.compileStreaming(fetch('./zig-out/main.wasm'))
+  const workers = await createWorkers(module, 4)
 
   let working = 0
   let bestMove, bestResult
@@ -62,7 +65,7 @@ window.requestAnimationFrame(async () => {
     bestResult = 0;
     working = 4;
     bestMove = 0 | 4 * Math.random()
-    for (let i = 0; i < 4; ++i) workers[i].postMessage({ board, dir: i })
+    for (let i = 0; i < 4; ++i) workers[i].postMessage(board)
   }
 
   for (let i = 0; i < 4; ++i) {
