@@ -1,7 +1,9 @@
 # 2048 AI
 
 An AI made for the game 2048. The AI can reach 16384 most of the time and
-sometimes even reach 32768.
+sometimes even reach 32768. Note, this is a newer and improved version of the
+AI, rewritten in Zig. You can find the old C++ version
+[here](https://github.com/ziap/2048-ai/tree/old-cpp)
 
 ## Algorithm
 
