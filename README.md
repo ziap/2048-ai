@@ -5,6 +5,8 @@ sometimes even reach 32768. Note, this is a newer and improved version of the
 AI, rewritten in Zig. You can find the old C++ version
 [here](https://github.com/ziap/2048-ai/tree/old-cpp)
 
+![Screenshot of the AI reaching 32768](.github/screenshot.png)
+
 ## Algorithm
 
 This AI is an Expectimax search run in parallel on your browser without any
