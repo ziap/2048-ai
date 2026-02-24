@@ -23,7 +23,18 @@ the AI can search very deep, especially in difficult positions, very quickly.
 This repository also includes a console application to run the AI without the
 overhead of the web platform. It also allows for reproducible benchmarking of
 the AI playing multiple games in parallel. Here's the current benchmark
-results: TBA
+results:
+
+| Budget | Speed          | Avg Score | % 32768 | % 16384 | % 8192 |
+| ------ | -------------- | --------- | ------- | ------- | ------ |
+| 2^15   | 1324.1 moves/s | 259989    | 3.6     | 58.2    | 91.6   |
+| 2^17   | 384.0 moves/s  | 319221    | 9.1     | 74.0    | 95.5   |
+| 2^19   | 119.5 moves/s  | 371887    | 17.6    | 84.6    | 98.1   |
+
+The speed is computed by averaging 10 games in single-threaded mode, on an AMD
+Ryzen 5 5600G CPU. The average score and tile reaching rate is computed by
+running 1000 games across 12 CPU cores. These results are fully reproducible
+using the seed `benchmark`, see the usage [below](#usage).
 
 ## Features
 
