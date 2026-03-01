@@ -5,13 +5,23 @@ pub fn build(b: *std.Build) void {
   const optimize = b.standardOptimizeOption(.{});
   const strip = optimize == .ReleaseFast or optimize == .ReleaseSmall;
 
+  const engine = b.addModule("engine", .{
+    .root_source_file = b.path("src/engine/main.zig"),
+  });
+
   const main_exe = b.addExecutable(.{
     .name = "2048",
     .root_module = b.createModule(.{
-      .root_source_file = b.path("src/main.zig"),
+      .root_source_file = b.path("src/cli/main.zig"),
       .target = target,
       .optimize = optimize,
       .strip = strip,
+      .imports = &.{
+        .{
+          .name = "engine",
+          .module = engine,
+        },
+      },
     }),
   });
 
@@ -45,10 +55,16 @@ pub fn build(b: *std.Build) void {
   const wasm_main = b.addExecutable(.{
     .name = "main",
     .root_module = b.createModule(.{
-      .root_source_file = b.path("src/wasm.zig"),
+      .root_source_file = b.path("src/wasm/main.zig"),
       .target = wasm_target,
       .optimize = optimize,
       .strip = strip,
+      .imports = &.{
+        .{
+          .name = "engine",
+          .module = engine,
+        },
+      },
     }),
   });
 

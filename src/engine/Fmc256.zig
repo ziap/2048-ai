@@ -113,13 +113,13 @@ pub inline fn bounded(self: *Fmc256, range: u64) u64 {
 
 /// Split a 256-bit integer into four 64-bit little-endian limbs.  
 pub inline fn toParts(n: u256) [4]u64 {
-    return .{
-      @truncate(n),
-      @truncate(n >> 64),
-      @truncate(n >> 128),
-      @intCast(n >> 192),
-    };
-  }
+  return .{
+    @truncate(n),
+    @truncate(n >> 64),
+    @truncate(n >> 128),
+    @intCast(n >> 192),
+  };
+}
 
 pub const Jump = struct {
   /// The algorithm's implicit modulus: MUL * 2^192 - 1

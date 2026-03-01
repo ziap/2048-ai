@@ -1,6 +1,6 @@
 const Worker = @This();
 
-const Expectimax = search.Expectimax(*const Heuristic, true);
+const Expectimax = engine.Expectimax(*const Heuristic, true);
 
 id: u32,
 rng: Fmc256,
@@ -79,10 +79,10 @@ pub fn run_games(self: *Worker, iter: u32, out: *Stats) !void {
 }
 
 const std = @import("std");
-const Fmc256 = @import("../lib/Fmc256.zig");
-const Board = @import("../lib/Board.zig");
-const Heuristic = @import("../lib/Heuristic.zig");
-const Bfs = @import("../lib/Bfs.zig");
-const search = @import("../lib/search.zig");
+const engine = @import("engine");
+const Fmc256 = engine.Fmc256;
+const Board = engine.Board;
+const Heuristic = engine.Heuristic;
+const Bfs = engine.Bfs;
 
 const Stats = @import("Stats.zig");

@@ -79,9 +79,10 @@ pub fn main() !void {
 }
 
 const std = @import("std");
-const Board = @import("lib/Board.zig");
-const Heuristic = @import("lib/Heuristic.zig");
+const engine = @import("engine");
+const Board = engine.Board;
+const Heuristic = engine.Heuristic;
 
-const Args = @import("cli/Args.zig");
-const Worker = @import("cli/Worker.zig");
-const Stats = @import("cli/Stats.zig");
+const Args = @import("Args.zig");
+const Worker = @import("Worker.zig");
+const Stats = @import("Stats.zig");

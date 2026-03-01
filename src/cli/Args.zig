@@ -157,5 +157,7 @@ pub fn display(self: Args, writer: *std.Io.Writer) !void {
 
 const std = @import("std");
 const stringMap = @import("stringMap.zig");
-const Fmc256 = @import("../lib/Fmc256.zig");
+
+const engine = @import("engine");
+const Fmc256 = engine.Fmc256;
 
