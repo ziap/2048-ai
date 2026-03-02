@@ -30,6 +30,7 @@ results:
 | 2^15   | 1324.1 moves/s | 259989    | 3.6     | 58.2    | 91.6   |
 | 2^17   | 384.0 moves/s  | 319221    | 9.1     | 74.0    | 95.5   |
 | 2^19   | 119.5 moves/s  | 371887    | 17.6    | 84.6    | 98.1   |
+| 2^21   | 26.8 moves/s   | 419545    | 26.5    | 89.9    | 99.2   |
 
 The speed is computed by averaging 10 games in single-threaded mode, on an AMD
 Ryzen 5 5600G CPU. The average score and tile reaching rate is computed by
