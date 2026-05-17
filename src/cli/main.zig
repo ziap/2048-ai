@@ -1,7 +1,5 @@
 pub fn main(init: std.process.Init) !void {
-  var arena: std.heap.ArenaAllocator = .init(std.heap.page_allocator);
-  defer arena.deinit();
-  const allocator = arena.allocator();
+  const allocator = init.arena.allocator();
 
   const args = Args.parse(init) catch return;
   if (args.iterations == 0) return;
@@ -26,6 +24,7 @@ pub fn main(init: std.process.Init) !void {
     .heuristic = heuristic.get(),
     .write_lock = &write_lock,
     .io = init.io,
+    .arena = allocator,
     .budget = args.budget,
   };
 
@@ -37,7 +36,7 @@ pub fn main(init: std.process.Init) !void {
       const workers = try allocator.alloc(Worker, bg_threads);
 
       for (workers, 1..) |*worker, id| {
-        worker.* = try .new(@intCast(id), &rng, shared, allocator);
+        worker.* = try .new(@intCast(id), &rng, shared);
       }
 
       const work_per_thread = args.iterations / args.threads;
@@ -52,7 +51,7 @@ pub fn main(init: std.process.Init) !void {
         });
       }
 
-      var worker: Worker = try .new(0, &rng, shared, allocator);
+      var worker: Worker = try .new(0, &rng, shared);
       try worker.run_games(if (remaining > 0) work_per_thread + 1 else work_per_thread, &result);
 
       for (threads) |*thread| thread.join();
@@ -71,7 +70,7 @@ pub fn main(init: std.process.Init) !void {
     try writer.print("Wall Speed: {d:.2} moves/s\n", .{ wall_speed });
     try writer.flush();
   } else {
-    var worker: Worker = try .new(0, &rng, shared, allocator);
+    var worker: Worker = try .new(0, &rng, shared);
     try worker.run_games(args.iterations, &result);
 
     try result.display(writer, true);

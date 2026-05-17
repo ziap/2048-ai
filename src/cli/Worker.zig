@@ -14,15 +14,16 @@ pub const Shared = struct {
   move_table: *const Board.MoveTable,
   heuristic: *const Heuristic,
   write_lock: *std.Io.Mutex,
+  arena: std.mem.Allocator,
   io: std.Io,
   budget: u32,
 };
 
-pub fn new(id: u32, rng: *Fmc256, shared: Shared, arena: std.mem.Allocator) !Worker {
+pub fn new(id: u32, rng: *Fmc256, shared: Shared) !Worker {
   rng.jump(.default);
 
-  const expectimax = try arena.create(Expectimax);
-  const bfs_buffer = try arena.alloc(Board, shared.budget);
+  const expectimax = try shared.arena.create(Expectimax);
+  const bfs_buffer = try shared.arena.alloc(Board, shared.budget);
   expectimax.* = .new(shared.move_table, shared.heuristic);
 
   return .{
@@ -53,10 +54,10 @@ pub fn run_games(self: *Worker, iter: u32, out: *Stats) !void {
     while (true) {
       const moves = self.move_table.getMoves(board);
       const valid = board.filterMoves(&moves);
-      const start_time = std.Io.Timestamp.now(self.io, .real);
+      const start_time = std.Io.Timestamp.now(self.io, .awake);
       const depth = bfs.expand(valid.moves[0..valid.len]).depth + 1;
       const dir = self.expectimax.search(board, depth) orelse break;
-      const done_time = std.Io.Timestamp.now(self.io, .real);
+      const done_time = std.Io.Timestamp.now(self.io, .awake);
       const duration = start_time.durationTo(done_time);
       total_time += @as(f64, @floatFromInt(duration.toNanoseconds()));
       total_move += 1;
