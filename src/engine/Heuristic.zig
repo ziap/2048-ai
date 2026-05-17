@@ -10,7 +10,7 @@ const SUM_WEIGHT = 11.0;
 const MERGES_WEIGHT = 700.0;
 const EMPTY_WEIGHT = 270.0;
 
-pub fn new() Heuristic {
+pub inline fn init(self: *Heuristic) void {
   const pow_tables = comptime pow_tables: {
     var sum_pow_table: [16]f32 = undefined;
     var mono_pow_table: [16]f32 = undefined;
@@ -30,8 +30,7 @@ pub fn new() Heuristic {
     };
   };
 
-  var table: Heuristic = undefined;
-  for (&table.score_table, 0..) |*entry, row| {
+  for (&self.score_table, 0..) |*entry, row| {
     const line = [_]u4 {
       @truncate(row >> 0),
       @truncate(row >> 4),
@@ -85,8 +84,6 @@ pub fn new() Heuristic {
       MONO_WEIGHT * @min(mono_left, mono_right) -
       SUM_WEIGHT * sum;
   }
-
-  return table;
 }
 
 pub fn evaluate(self: *const Heuristic, board: Board) f32 {

@@ -100,9 +100,7 @@ pub const MoveTable = struct {
   forward_table: [MAX_ROW]u16,
   reverse_table: [MAX_ROW]u16,
 
-  pub fn new() MoveTable {
-    var table: MoveTable = undefined;
-
+  pub inline fn init(self: *MoveTable) void {
     for (0..MAX_ROW) |row| {
       var line = [_]u4 {
         @truncate(row >> 0),
@@ -141,14 +139,12 @@ pub const MoveTable = struct {
         break :moved moved;
       };
 
-      table.forward_table[row] = moved;
-      table.reverse_table[reverse16(@intCast(row))] = reverse16(moved);
+      self.forward_table[row] = moved;
+      self.reverse_table[reverse16(@intCast(row))] = reverse16(moved);
     }
-
-    return table;
   }
 
-  pub fn getMoves(self: MoveTable, board: Board) [4]Board {
+  pub fn getMoves(self: *const MoveTable, board: Board) [4]Board {
     const data = board.data;
     const transposed = board.transpose().data;
 
@@ -223,12 +219,7 @@ pub fn score(self: Board, four_count: u32) u32 {
 
 // Lehmer64 PRNG hash function, a very fast but weak hash function that
 // comphensate its speed for some extra collisions
-pub inline fn hash(self: Board, bits: comptime_int) @Type(.{
-  .int = .{
-    .signedness = .unsigned,
-    .bits = bits,
-  },
-}) {
+pub inline fn hash(self: Board, bits: comptime_int) @Int(.unsigned, bits) {
   // MCG multiplier from: <https://arxiv.org/pdf/2001.05304>
   const h = self.data *% 0xf1357aea2e62a9c5;
   return @intCast(h >> (64 - bits));

@@ -57,7 +57,7 @@ using the seed `benchmark`, see the usage [below](#usage).
 ## Usage
 
 Get [Zig](https://ziglang.org/) version
-[0.15.2](https://ziglang.org/download/#release-0.15.2), and compile everything
+[0.16.0](https://ziglang.org/download/#release-0.16.0), and compile everything
 with optimization using the following command:
 
 ```sh

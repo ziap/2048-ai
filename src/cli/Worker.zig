@@ -4,7 +4,8 @@ const Expectimax = engine.Expectimax(*const Heuristic, true);
 
 id: u32,
 rng: Fmc256,
-write_lock: *std.Thread.Mutex,
+write_lock: *std.Io.Mutex,
+io: std.Io,
 move_table: *const Board.MoveTable,
 expectimax: *Expectimax,
 bfs: Bfs,
@@ -12,7 +13,8 @@ bfs: Bfs,
 pub const Shared = struct {
   move_table: *const Board.MoveTable,
   heuristic: *const Heuristic,
-  write_lock: *std.Thread.Mutex,
+  write_lock: *std.Io.Mutex,
+  io: std.Io,
   budget: u32,
 };
 
@@ -27,6 +29,7 @@ pub fn new(id: u32, rng: *Fmc256, shared: Shared, arena: std.mem.Allocator) !Wor
     .id = id,
     .rng = rng.*,
     .write_lock = shared.write_lock,
+    .io = shared.io,
     .move_table = shared.move_table,
     .expectimax = expectimax,
     .bfs = .new(bfs_buffer, shared.move_table),
@@ -35,7 +38,7 @@ pub fn new(id: u32, rng: *Fmc256, shared: Shared, arena: std.mem.Allocator) !Wor
 
 pub fn run_games(self: *Worker, iter: u32, out: *Stats) !void {
   var buffer: [4096]u8 = undefined;
-  var stdout = std.fs.File.stdout().writer(&buffer);
+  var stdout: std.Io.File.Writer = .init(.stdout(), self.io, &buffer);
   const writer = &stdout.interface;
 
   var stats: Stats = .empty;
@@ -50,10 +53,12 @@ pub fn run_games(self: *Worker, iter: u32, out: *Stats) !void {
     while (true) {
       const moves = self.move_table.getMoves(board);
       const valid = board.filterMoves(&moves);
-      var timer = try std.time.Timer.start();
+      const start_time = std.Io.Timestamp.now(self.io, .real);
       const depth = bfs.expand(valid.moves[0..valid.len]).depth + 1;
       const dir = self.expectimax.search(board, depth) orelse break;
-      total_time += @as(f64, @floatFromInt(timer.read()));
+      const done_time = std.Io.Timestamp.now(self.io, .real);
+      const duration = start_time.durationTo(done_time);
+      total_time += @as(f64, @floatFromInt(duration.toNanoseconds()));
       total_move += 1;
       board, const is_four = moves[dir].addTile(&self.rng);
       four_count += is_four;
@@ -70,8 +75,8 @@ pub fn run_games(self: *Worker, iter: u32, out: *Stats) !void {
     try stats.display(writer, false);
     try writer.writeAll("\n");
 
-    self.write_lock.lock();
-    defer self.write_lock.unlock();
+    try self.write_lock.lock(self.io);
+    defer self.write_lock.unlock(self.io);
     try writer.flush();
   }
 

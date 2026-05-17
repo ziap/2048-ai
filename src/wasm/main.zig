@@ -10,8 +10,8 @@ export fn init() void {
     var heuristic: Heuristic = undefined;
   };
 
-  ctx.move_table = .new();
-  S.heuristic = .new();
+  ctx.move_table.init();
+  S.heuristic.init();
 
   ctx.expectimax = .new(&ctx.move_table, &S.heuristic);
 }

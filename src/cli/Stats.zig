@@ -71,6 +71,7 @@ pub fn display(self: Stats, out: anytype, comptime detail: bool) !void {
   try out.print("Games Played : {d}\n", .{self.total_games});
   try out.print("Score        : Max {d} | Avg {d:.2}\n", .{ self.best_score, avg_score });
   try out.print("Performance  : {d:.2} moves/s | {d:.3}s cpu time\n", .{ speed, total_time });
+  const max_tiles: [16]u32 = self.max_tiles;
   if (comptime detail) {
     try out.writeAll("\n--- Reaching Rate ---\n");
     
@@ -78,7 +79,7 @@ pub fn display(self: Stats, out: anytype, comptime detail: bool) !void {
 
     var i: u4 = 15;
     while (accumulated < self.total_games) : (i -= 1) {
-      accumulated += self.max_tiles[i];
+      accumulated += max_tiles[i];
 
       if (accumulated > 0) {
         const tile_val = @as(u32, 1) << @intCast(i);
@@ -91,9 +92,9 @@ pub fn display(self: Stats, out: anytype, comptime detail: bool) !void {
     try self.best_game.display(out);
   } else {
     var i: u4 = 15;
-    while (self.max_tiles[i] == 0) : (i -= 1) {}
+    while (max_tiles[i] == 0) : (i -= 1) {}
     const tile_val = @as(u32, 1) << @intCast(i);
-    const percent = @as(f64, @floatFromInt(self.max_tiles[i])) * 100.0 / total_games;
+    const percent = @as(f64, @floatFromInt(max_tiles[i])) * 100.0 / total_games;
     try out.print("Max tile     : {d: <5} | {d:.1}%\n", .{ tile_val, percent });
   }
   try out.writeAll("==================================================\n");

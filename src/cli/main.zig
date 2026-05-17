@@ -1,30 +1,31 @@
-pub fn main() !void {
+pub fn main(init: std.process.Init) !void {
   var arena: std.heap.ArenaAllocator = .init(std.heap.page_allocator);
   defer arena.deinit();
   const allocator = arena.allocator();
 
-  const args = Args.parse(allocator) catch return;
+  const args = Args.parse(init) catch return;
   if (args.iterations == 0) return;
 
   var buffer: [4096]u8 = undefined;
-  var stdout = std.fs.File.stdout().writer(&buffer);
+  var stdout: std.Io.File.Writer = .init(.stdout(), init.io, &buffer);
   const writer = &stdout.interface;
 
   try args.display(writer);
   var rng = args.seed.toRng();
 
-  const move_table: Board.MoveTable = .new();
-  const heuristic: Heuristic = .new();
+  var move_table: LazyInit(Board.MoveTable) = .uninit;
+  var heuristic: LazyInit(Heuristic) = .uninit;
 
   const bg_threads = args.threads - 1;
 
   var result: Stats = .empty;
 
-  var write_lock: std.Thread.Mutex = .{};
+  var write_lock: std.Io.Mutex = .init;
   const shared: Worker.Shared = .{
-    .move_table = &move_table,
-    .heuristic = &heuristic,
+    .move_table = move_table.get(),
+    .heuristic = heuristic.get(),
     .write_lock = &write_lock,
+    .io = init.io,
     .budget = args.budget,
   };
 
@@ -86,3 +87,4 @@ const Heuristic = engine.Heuristic;
 const Args = @import("Args.zig");
 const Worker = @import("Worker.zig");
 const Stats = @import("Stats.zig");
+const LazyInit = @import("lazy_init.zig").LazyInit;

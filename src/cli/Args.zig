@@ -12,7 +12,7 @@ const Seed = struct {
   static: ?u256,
   dynamic: []const u8,
 
-  fn parse(input: ?[]const u8) !Seed {
+  fn parse(input: ?[]const u8, io: std.Io) !Seed {
     if (input) |dynamic| {
       return .{
         .static = std.fmt.parseUnsigned(u256, dynamic, 0) catch null,
@@ -20,7 +20,7 @@ const Seed = struct {
       };
     } else {
       var seed: u256 = undefined;
-      try std.posix.getrandom(@ptrCast(&seed));
+      std.Io.random(io, @ptrCast(&seed));
       return .{
         .static = seed,
         .dynamic = "",
@@ -37,7 +37,7 @@ const Seed = struct {
   }
 };
 
-const paramMap = stringMap.StringMap(Param).init(.{
+const paramMap = StringMap(Param).init(.{
   .@"--iter" = .iterations,
   .@"--budget" = .budget,
   .@"--threads" = .threads,
@@ -56,7 +56,7 @@ budget: u32,
 threads: u32,
 seed: Seed,
 
-fn getValue(arg: []const u8, iter: *std.process.ArgIterator, writer: *std.Io.Writer) ![]const u8 {
+fn getValue(arg: []const u8, iter: *std.process.Args.Iterator, writer: *std.Io.Writer) ![]const u8 {
   return iter.next() orelse {
     try writer.print("Error: Missing value for parameter '{s}'\n", .{ arg });
     try writer.flush();
@@ -64,7 +64,7 @@ fn getValue(arg: []const u8, iter: *std.process.ArgIterator, writer: *std.Io.Wri
   };
 }
 
-fn getU32(arg: []const u8, iter: *std.process.ArgIterator, writer: *std.Io.Writer) !u32 {
+fn getU32(arg: []const u8, iter: *std.process.Args.Iterator, writer: *std.Io.Writer) !u32 {
   const value = try getValue(arg, iter, writer);
 
   const uint = std.fmt.parseUnsigned(u32, value, 10) catch |e| {
@@ -76,12 +76,12 @@ fn getU32(arg: []const u8, iter: *std.process.ArgIterator, writer: *std.Io.Write
   return uint;
 }
 
-pub fn parse(allocator: std.mem.Allocator) !Args {
+pub fn parse(init: std.process.Init) !Args {
   var buffer: [4096]u8 = undefined;
-  var stderr = std.fs.File.stderr().writer(&buffer);
+  var stderr: std.Io.File.Writer = .init(.stderr(), init.io, &buffer);
   const writer = &stderr.interface;
 
-  var args = try std.process.argsWithAllocator(allocator);
+  var args = try init.minimal.args.iterateAllocator(init.arena.allocator());
   if (!args.skip()) return error.NoProgramName;
 
   var iterations: u32 = 1;
@@ -124,7 +124,7 @@ pub fn parse(allocator: std.mem.Allocator) !Args {
   return .{
     .iterations = iterations,
     .budget = budget,
-    .seed = try .parse(seed_input),
+    .seed = try .parse(seed_input, init.io),
     .threads = @max(1, @min(
       threads orelse @as(u32, @intCast(try std.Thread.getCpuCount())),
       iterations,
@@ -156,7 +156,7 @@ pub fn display(self: Args, writer: *std.Io.Writer) !void {
 }
 
 const std = @import("std");
-const stringMap = @import("stringMap.zig");
+const StringMap = @import("string_map.zig").StringMap;
 
 const engine = @import("engine");
 const Fmc256 = engine.Fmc256;
