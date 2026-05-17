@@ -9,7 +9,6 @@ pub fn main(init: std.process.Init) !void {
   const writer = &stdout.interface;
 
   try args.display(writer);
-  var rng = args.seed.toRng();
 
   var move_table: LazyInit(Board.MoveTable) = .uninit;
   var heuristic: LazyInit(Heuristic) = .uninit;
@@ -19,13 +18,15 @@ pub fn main(init: std.process.Init) !void {
   var result: Stats = .empty;
 
   var write_lock: std.Io.Mutex = .init;
+  var next_game: std.atomic.Value(u32) = .init(0);
   const shared: Worker.Shared = .{
+    .args = args,
     .move_table = move_table.get(),
     .heuristic = heuristic.get(),
     .write_lock = &write_lock,
+    .next_game = &next_game,
     .io = init.io,
     .arena = allocator,
-    .budget = args.budget,
   };
 
   if (bg_threads > 0) {
@@ -36,23 +37,19 @@ pub fn main(init: std.process.Init) !void {
       const workers = try allocator.alloc(Worker, bg_threads);
 
       for (workers, 1..) |*worker, id| {
-        worker.* = try .new(@intCast(id), &rng, shared);
+        worker.* = try .new(@intCast(id), shared);
       }
-
-      const work_per_thread = args.iterations / args.threads;
-      const remaining = args.iterations % args.threads;
 
       const threads = try allocator.alloc(std.Thread, bg_threads);
       for (threads, workers, stats) |*thread, *worker, *stat| {
         thread.* = try std.Thread.spawn(.{}, Worker.run_games, .{
           worker,
-          if (worker.id < remaining) work_per_thread + 1 else work_per_thread,
           stat,
         });
       }
 
-      var worker: Worker = try .new(0, &rng, shared);
-      try worker.run_games(if (remaining > 0) work_per_thread + 1 else work_per_thread, &result);
+      var worker: Worker = try .new(0, shared);
+      try worker.run_games(&result);
 
       for (threads) |*thread| thread.join();
     };
@@ -70,8 +67,8 @@ pub fn main(init: std.process.Init) !void {
     try writer.print("Wall Speed: {d:.2} moves/s\n", .{ wall_speed });
     try writer.flush();
   } else {
-    var worker: Worker = try .new(0, &rng, shared);
-    try worker.run_games(args.iterations, &result);
+    var worker: Worker = try .new(0, shared);
+    try worker.run_games(&result);
 
     try result.display(writer, true);
     try writer.flush();
