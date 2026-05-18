@@ -10,7 +10,7 @@ const SUM_WEIGHT = 11.0;
 const MERGES_WEIGHT = 700.0;
 const EMPTY_WEIGHT = 270.0;
 
-pub inline fn init(self: *Heuristic) void {
+pub fn init(self: *Heuristic) void {
   const pow_tables = comptime pow_tables: {
     var sum_pow_table: [16]f32 = undefined;
     var mono_pow_table: [16]f32 = undefined;

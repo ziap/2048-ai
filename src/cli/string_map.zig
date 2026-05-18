@@ -41,7 +41,7 @@ pub fn StringMap(V: type) type {
       return null;
     }
 
-    pub inline fn init(comptime kvs: anytype) @This() {
+    pub fn init(comptime kvs: anytype) @This() {
       comptime {
         const type_info = @typeInfo(@TypeOf(kvs));
         const fields = type_info.@"struct".fields;

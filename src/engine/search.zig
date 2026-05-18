@@ -23,23 +23,49 @@ pub fn Expectimax(Eval: type, comptime transposition: bool) type {
       }
     } else void;
 
+    const Self = @This();
+
     move_table: *const Board.MoveTable,
     heuristic: Eval,
     cache: Cache,
 
-    pub inline fn new(move_table: *const Board.MoveTable, heuristic: Eval) @This() {
+    pub const Fn = struct {
+      inner: *Self,
+
+      pub fn call(self: Fn, board: Board, depth: u8) ?u4 {
+        var best_move: ?u4 = null;
+        var best_score: f32 = 0;
+
+        inline for (self.inner.move_table.getMoves(board), 0..) |next_board, dir| {
+          if (next_board.data != board.data) {
+            const score = self.inner.expectNode(next_board, depth);
+            if (score > best_score) {
+              best_score = score;
+              best_move = dir;
+            }
+          }
+        }
+
+        return best_move;
+      }
+    };
+
+    pub fn reset(self: *Self) Fn {
+      if (transposition and !@inComptime()) {
+        @memset(&self.cache.boards, 0);
+      }
+      return .{ .inner = self };
+    }
+
+    pub fn new(move_table: *const Board.MoveTable, heuristic: Eval) @This() {
       return .{
         .move_table = move_table,
         .heuristic = heuristic,
-        .cache = if (transposition) .{
-          .boards = @splat(0),
-          .depths = undefined,
-          .scores = undefined,
-        } else {},
+        .cache = if (transposition) undefined else {},
       };
     }
 
-    pub fn expectNode(self: *@This(), board: Board, depth: u8) f32 {
+    pub fn expectNode(self: *Self, board: Board, depth: u8) f32 {
       if (depth == 0) {
         return self.heuristic.evaluate(board);
       }
@@ -82,23 +108,6 @@ pub fn Expectimax(Eval: type, comptime transposition: bool) type {
       }
 
       return max_score;
-    }
-
-    pub fn search(self: *@This(), board: Board, depth: u8) ?u4 {
-      var best_move: ?u4 = null;
-      var best_score: f32 = 0;
-
-      inline for (self.move_table.getMoves(board), 0..) |next_board, dir| {
-        if (next_board.data != board.data) {
-          const score = self.expectNode(next_board, depth);
-          if (score > best_score) {
-            best_score = score;
-            best_move = dir;
-          }
-        }
-      }
-
-      return best_move;
     }
   };
 }

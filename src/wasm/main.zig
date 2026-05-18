@@ -5,15 +5,18 @@ var ctx: struct {
   expectimax: Expectimax,
 } = undefined;
 
+const search_fn = ctx.expectimax.reset();
+
 export fn init() void {
   const S = struct {
     var heuristic: Heuristic = undefined;
+    var expectimax: Expectimax = undefined;
   };
 
   ctx.move_table.init();
   S.heuristic.init();
-
   ctx.expectimax = .new(&ctx.move_table, &S.heuristic);
+  _ = ctx.expectimax.reset();
 }
 
 export fn search(board_data: u64) i32 {
@@ -26,7 +29,7 @@ export fn search(board_data: u64) i32 {
   const buffer = S.bfs_buffer[0..S.bfs_buffer.len];
   var bfs: Bfs = .new(buffer, &ctx.move_table);
   const depth = bfs.expand(valid.moves[0..valid.len]).depth + 1;
-  const dir = ctx.expectimax.search(board, depth);
+  const dir = search_fn.call(board, depth);
   return dir orelse -1;
 }
 
