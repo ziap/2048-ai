@@ -2,21 +2,23 @@ const Expectimax = engine.Expectimax(*const Heuristic, true);
 
 var ctx: struct {
   move_table: Board.MoveTable,
-  expectimax: Expectimax,
+  heuristic: Heuristic,
+  cache: Expectimax.Cache,
 } = undefined;
 
-const search_fn = ctx.expectimax.reset();
+const search_fn = blk: {
+  const expectimax: Expectimax = .{
+    .move_table = &ctx.move_table,
+    .heuristic = &ctx.heuristic,
+    .cache = &ctx.cache,
+  };
+  break :blk expectimax.reset();
+};
 
 export fn init() void {
-  const S = struct {
-    var heuristic: Heuristic = undefined;
-    var expectimax: Expectimax = undefined;
-  };
-
   ctx.move_table.init();
-  S.heuristic.init();
-  ctx.expectimax = .new(&ctx.move_table, &S.heuristic);
-  _ = ctx.expectimax.reset();
+  ctx.heuristic.init();
+  _ = search_fn.inner.reset();
 }
 
 export fn search(board_data: u64) i32 {

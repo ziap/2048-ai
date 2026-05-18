@@ -37,7 +37,7 @@ pub fn main(init: std.process.Init) !void {
       const workers = try allocator.alloc(Worker, bg_threads);
 
       for (workers, 1..) |*worker, id| {
-        worker.* = try .new(@intCast(id), shared);
+        worker.* = try .new(@intCast(id), &shared);
       }
 
       const threads = try allocator.alloc(std.Thread, bg_threads);
@@ -48,14 +48,14 @@ pub fn main(init: std.process.Init) !void {
         });
       }
 
-      var worker: Worker = try .new(0, shared);
+      var worker: Worker = try .new(0, &shared);
       try worker.run_games(&result);
 
       for (threads) |*thread| thread.join();
     };
 
     var longest_time = result.total_time;
-    for (stats) |stat| {
+    for (stats) |*stat| {
       result = result.combine(stat);
       longest_time = @max(longest_time, stat.total_time);
     }
@@ -67,7 +67,7 @@ pub fn main(init: std.process.Init) !void {
     try writer.print("Wall Speed: {d:.2} moves/s\n", .{ wall_speed });
     try writer.flush();
   } else {
-    var worker: Worker = try .new(0, shared);
+    var worker: Worker = try .new(0, &shared);
     try worker.run_games(&result);
 
     try result.display(writer, true);

@@ -28,7 +28,7 @@ const Seed = struct {
     }
   }
 
-  pub fn toRng(self: Seed) Fmc256 {
+  pub fn toRng(self: *const Seed) Fmc256 {
     if (self.static) |seed| {
       return .fromSeed(Fmc256.toParts(seed));
     } else {

@@ -1,6 +1,6 @@
 pub fn Expectimax(Eval: type, comptime transposition: bool) type {
   return struct {
-    const Cache = if (transposition) struct {
+    pub const Cache = if (transposition) struct {
       const CACHE_BITS = 18;
       const CACHE_SIZE = 1 << CACHE_BITS;
 
@@ -27,12 +27,12 @@ pub fn Expectimax(Eval: type, comptime transposition: bool) type {
 
     move_table: *const Board.MoveTable,
     heuristic: Eval,
-    cache: Cache,
+    cache: *Cache,
 
     pub const Fn = struct {
-      inner: *Self,
+      inner: Self,
 
-      pub fn call(self: Fn, board: Board, depth: u8) ?u4 {
+      pub fn call(self: *const Fn, board: Board, depth: u8) ?u4 {
         var best_move: ?u4 = null;
         var best_score: f32 = 0;
 
@@ -50,22 +50,22 @@ pub fn Expectimax(Eval: type, comptime transposition: bool) type {
       }
     };
 
-    pub fn reset(self: *Self) Fn {
+    pub fn reset(self: Self) Fn {
       if (transposition and !@inComptime()) {
         @memset(&self.cache.boards, 0);
       }
       return .{ .inner = self };
     }
 
-    pub fn new(move_table: *const Board.MoveTable, heuristic: Eval) @This() {
+    pub fn new(move_table: *const Board.MoveTable, heuristic: Eval, cache: if (transposition) *Cache else void) @This() {
       return .{
         .move_table = move_table,
         .heuristic = heuristic,
-        .cache = if (transposition) undefined else {},
+        .cache = cache,
       };
     }
 
-    pub fn expectNode(self: *Self, board: Board, depth: u8) f32 {
+    pub fn expectNode(self: *const Self, board: Board, depth: u8) f32 {
       if (depth == 0) {
         return self.heuristic.evaluate(board);
       }
@@ -97,7 +97,7 @@ pub fn Expectimax(Eval: type, comptime transposition: bool) type {
       return score;
     }
 
-    fn maxNode(self: *@This(), board: Board , depth: u8) f32 {
+    fn maxNode(self: *const Self, board: Board , depth: u8) f32 {
       const moves = self.move_table.getMoves(board);
 
       var max_score: f32 = 0;

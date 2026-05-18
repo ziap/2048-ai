@@ -9,7 +9,7 @@ next_game: *std.atomic.Value(u32),
 total_games: u32,
 io: std.Io,
 move_table: *const Board.MoveTable,
-expectimax: *Expectimax,
+expectimax: Expectimax,
 bfs: Bfs,
 
 pub const Shared = struct {
@@ -22,10 +22,9 @@ pub const Shared = struct {
   io: std.Io,
 };
 
-pub fn new(id: u32, shared: Shared) !Worker {
-  const expectimax = try shared.arena.create(Expectimax);
+pub fn new(id: u32, shared: *const Shared) !Worker {
   const bfs_buffer = try shared.arena.alloc(Board, shared.args.budget);
-  expectimax.* = .new(shared.move_table, shared.heuristic);
+  const cache = try shared.arena.create(Expectimax.Cache);
 
   return .{
     .id = id,
@@ -35,7 +34,11 @@ pub fn new(id: u32, shared: Shared) !Worker {
     .total_games = shared.args.iterations,
     .io = shared.io,
     .move_table = shared.move_table,
-    .expectimax = expectimax,
+    .expectimax = .{
+      .move_table = shared.move_table,
+      .heuristic = shared.heuristic,
+      .cache = cache,
+    },
     .bfs = .new(bfs_buffer, shared.move_table),
   };
 }
@@ -79,7 +82,7 @@ pub fn run_games(self: *Worker, out: *Stats) !void {
       four_count += is_four;
     }
 
-    stats = stats.combine(.fromResult(.{
+    stats = stats.combine(&.fromResult(.{
       .final_board = board,
       .four_count = four_count,
       .total_time = total_time,

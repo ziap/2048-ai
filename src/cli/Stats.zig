@@ -40,7 +40,7 @@ pub fn fromResult(result: struct {
   };
 }
 
-pub fn combine(self: Stats, other: Stats) Stats {
+pub fn combine(self: *const Stats, other: *const Stats) Stats {
   const best_game, const best_score = if (other.best_score > self.best_score) .{
     other.best_game,
     other.best_score,
@@ -59,7 +59,7 @@ pub fn combine(self: Stats, other: Stats) Stats {
   };
 }
 
-pub fn display(self: Stats, out: anytype, comptime detail: bool) !void {
+pub fn display(self: *const Stats, out: anytype, comptime detail: bool) !void {
   if (self.total_games == 0) return;
 
   const total_games: f64 = @floatFromInt(self.total_games);
