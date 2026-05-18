@@ -1,7 +1,7 @@
-pub const UP: u4 = 0;
-pub const RIGHT: u4 = 1;
-pub const DOWN: u4 = 2;
-pub const LEFT: u4 = 3;
+pub const UP: u2 = 0;
+pub const RIGHT: u2 = 1;
+pub const DOWN: u2 = 2;
+pub const LEFT: u2 = 3;
 
 const Board = @This();
 const Fmc256 = @import("Fmc256.zig");

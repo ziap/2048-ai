@@ -32,8 +32,8 @@ pub fn Expectimax(Eval: type, comptime transposition: bool) type {
     pub const Fn = struct {
       inner: Self,
 
-      pub fn call(self: *const Fn, board: Board, depth: u8) ?u4 {
-        var best_move: ?u4 = null;
+      pub fn call(self: *const Fn, board: Board, depth: u8) ?u2 {
+        var best_move: ?u2 = null;
         var best_score: f32 = 0;
 
         inline for (self.inner.move_table.getMoves(board), 0..) |next_board, dir| {
