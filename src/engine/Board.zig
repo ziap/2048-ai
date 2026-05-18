@@ -15,8 +15,8 @@ pub fn display(self: Board, out: anytype) !void {
   var data = self.data;
   try out.writeAll(first_line);
 
-  inline for (0..4) |_| {
-    inline for (0..4) |_| {
+  for (0..4) |_| {
+    for (0..4) |_| {
       const lut = comptime lut: {
         const tiles = &.{
           "     ", "    2", "    4", "    8",
@@ -100,7 +100,7 @@ pub const MoveTable = struct {
   forward_table: [MAX_ROW]u16,
   reverse_table: [MAX_ROW]u16,
 
-  pub inline fn init(self: *MoveTable) void {
+  pub fn init(self: *MoveTable) void {
     for (0..MAX_ROW) |row| {
       var line = [_]u4 {
         @truncate(row >> 0),
@@ -197,7 +197,7 @@ pub fn maxTile(self: Board) u4 {
   var result: u4 = 0;
   var data = self.data;
 
-  inline for (0..16) |_| {
+  for (0..16) |_| {
     const tile: u4 = @truncate(data);
     result = @max(result, tile);
     data >>= 4;
@@ -209,7 +209,7 @@ pub fn maxTile(self: Board) u4 {
 pub fn score(self: Board, four_count: u32) u32 {
   var data = self.data;
   var result: u32 = 0;
-  inline for (0..16) |_| {
+  for (0..16) |_| {
     const tile: u4 = @truncate(data);
     result += @as(u32, tile -| 1) << tile;
     data >>= 4;
