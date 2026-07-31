@@ -1,25 +1,51 @@
-pub fn Expectimax(Eval: type, comptime transposition: bool) type {
+// `cache_bits` sizes the transposition table; 0 disables it entirely.
+pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
   return struct {
-    pub const Cache = if (transposition) struct {
-      const CACHE_BITS = 18;
-      const CACHE_SIZE = 1 << CACHE_BITS;
+    const transposition = cache_bits > 0;
 
-      depths: [CACHE_SIZE]u8,
-      boards: [CACHE_SIZE]u64,
-      scores: [CACHE_SIZE]f32,
+    pub const Cache = if (transposition) struct {
+      const CACHE_SIZE = 1 << cache_bits;
+
+      const Data = packed struct(u40) {
+        depth: u8,
+        score: f32,
+      };
+
+      const Entry = struct {
+        key: u64,
+        data: Data,
+      };
+
+      comptime {
+        if (@sizeOf(Entry) != 16) @compileError("entry must stay a 16-byte pair");
+      }
+
+      entries: [CACHE_SIZE]Entry align(64),
+
+      inline fn mix(data: Data) u64 {
+        return @as(u40, @bitCast(data));
+      }
 
       fn insert(self: *Cache, board: Board, depth: u8, score: f32) void {
-        const h = board.hash(CACHE_BITS);
+        const data: Data = .{ .depth = depth, .score = score };
+        // Volatile so both halves are written exactly once, in this order.
+        const entry: *volatile Entry = &self.entries[board.hash(cache_bits)];
 
-        self.boards[h] = board.data;
-        self.depths[h] = depth;
-        self.scores[h] = score;
+        entry.key = board.data ^ mix(data);
+        entry.data = data;
       }
 
       fn query(self: *Cache, board: Board, depth: u8) ?f32 {
-        const h = board.hash(CACHE_BITS);
-        if (self.boards[h] != board.data or self.depths[h] < depth) return null;
-        return self.scores[h];
+        // Volatile so neither half can be reloaded after the check below.
+        const entry: *volatile Entry = &self.entries[board.hash(cache_bits)];
+
+        const key = entry.key;
+        const data = entry.data;
+
+        if (key ^ mix(data) != board.data) return null;
+        if (data.depth < depth) return null;
+
+        return data.score;
       }
     } else void;
 
@@ -27,7 +53,7 @@ pub fn Expectimax(Eval: type, comptime transposition: bool) type {
 
     move_table: *const Board.MoveTable,
     heuristic: Eval,
-    cache: *Cache,
+    cache: if (transposition) *Cache else void,
 
     pub const Fn = struct {
       inner: Self,
@@ -52,7 +78,10 @@ pub fn Expectimax(Eval: type, comptime transposition: bool) type {
 
     pub fn reset(self: Self) Fn {
       if (transposition and !@inComptime()) {
-        @memset(&self.cache.boards, 0);
+        @memset(&self.cache.entries, .{
+          .key = 0,
+          .data = .{ .depth = 0, .score = 0 },
+        });
       }
       return .{ .inner = self };
     }

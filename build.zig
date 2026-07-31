@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const MEMORY_BYTES = 64 * 1024 * 1024;
+
 pub fn build(b: *std.Build) void {
   const target = b.standardTargetOptions(.{});
   const optimize = b.standardOptimizeOption(.{});
@@ -70,6 +72,11 @@ pub fn build(b: *std.Build) void {
 
   wasm_main.rdynamic = true;
   wasm_main.entry = .disabled;
+
+  wasm_main.shared_memory = true;
+  wasm_main.import_memory = true;
+  wasm_main.initial_memory = MEMORY_BYTES;
+  wasm_main.max_memory = MEMORY_BYTES;
   const bin = wasm_main.getEmittedBin();
   const artifact = b.addInstallFile(bin, "main.wasm");
 

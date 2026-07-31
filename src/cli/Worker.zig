@@ -1,6 +1,6 @@
 const Worker = @This();
 
-const Expectimax = engine.Expectimax(*const Heuristic, true);
+const Expectimax = engine.Expectimax(*const Heuristic, 18);
 
 id: u32,
 rng: Fmc256,
