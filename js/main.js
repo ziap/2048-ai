@@ -4,6 +4,31 @@ import {GameManager} from "../vendor/2048.min.js"
 // worker can instantiate over the same one; a mismatch is a LinkError here.
 const MEMORY_PAGES = 1024
 
+const RELOAD_KEY = '2048-ai:coi-reload'
+
+async function ensureIsolated() {
+  if (window.crossOriginIsolated) {
+    sessionStorage.removeItem(RELOAD_KEY)
+    return true
+  }
+
+  if (!navigator.serviceWorker) return false
+  if (sessionStorage.getItem(RELOAD_KEY)) return false
+
+  try {
+    await navigator.serviceWorker.register(new URL('../sw.js', import.meta.url))
+    await navigator.serviceWorker.ready
+  } catch {
+    return false
+  }
+
+  sessionStorage.setItem(RELOAD_KEY, '1')
+  location.reload()
+
+  // The reload is async, so keep the caller from starting anything.
+  await new Promise(() => {})
+}
+
 function createWorker(worker_url, config) {
   const worker = new Worker(worker_url, { type: 'module' })
   worker.postMessage(config)
@@ -15,11 +40,16 @@ function createWorker(worker_url, config) {
 }
 
 window.requestAnimationFrame(async () => {
+  // Reloads the page if the worker had to be installed first, so nothing below
+  // this line runs twice.
+  await ensureIsolated()
+
   const game = new GameManager(4);
   let aiRunning = false
 
   if (typeof SharedArrayBuffer == 'undefined') {
-    throw new Error('needs cross-origin isolation; serve with COOP/COEP (see sws.toml)')
+    throw new Error('needs cross-origin isolation; serve over https:// or ' +
+      'localhost so sw.js can install, or send COOP/COEP (see config.toml)')
   }
 
   const requested = new URLSearchParams(location.search).get('threads')
@@ -35,7 +65,8 @@ window.requestAnimationFrame(async () => {
   // Compiled once and instantiated per worker, so N workers don't each
   // recompile the module on startup.
   const module = await WebAssembly.compileStreaming(
-    fetch(new URL('../zig-out/main.wasm', import.meta.url)))
+    fetch(new URL('../zig-out/main.wasm', import.meta.url)),
+  )
 
   // The pool parks before it touches anything the searcher builds, but every
   // worker is still handshaken before the first search goes out.

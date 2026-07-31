@@ -1,5 +1,5 @@
-const CACHE_BITS = 19;
-const BFS_BUDGET = 1 << 19;
+const CACHE_BITS = 20;
+const BFS_BUDGET = 655360;
 
 const Search = engine.Expectimax(*const Heuristic, CACHE_BITS);
 const Split = engine.Expectimax(CaptureEval, 0);
