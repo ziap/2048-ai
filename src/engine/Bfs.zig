@@ -67,6 +67,8 @@ fn sort(self: *Bfs, len: u32) void {
   S.pass(scratch, items, &count, 1);
 }
 
+const OVERFLOW_MARGIN = 2;
+
 const Result = struct {
   boards: []const Board,
   depth: u8,
@@ -77,9 +79,13 @@ pub fn expand(self: *Bfs, initial: []const Board) Result {
   var current_len: u32 = @intCast(initial.len);
 
   var depth: u8 = 0;
+  var prev_len: u32 = 1;
 
   search: while (current_len > 0) {
     self.sort(current_len);
+
+    const estimate = @as(u64, current_len) * current_len / prev_len;
+    if (estimate > @as(u64, self.next.len) * OVERFLOW_MARGIN) break :search;
 
     var next_len: u32 = 0;
     var last: u64 = 0;
@@ -109,6 +115,7 @@ pub fn expand(self: *Bfs, initial: []const Board) Result {
 
     const tmp = self.current;
     self.current = self.next;
+    prev_len = current_len;
     current_len = next_len;
 
     self.next = tmp;
