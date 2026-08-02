@@ -18,8 +18,8 @@ pub inline fn new(buffer: []Board, move_table: *const Board.MoveTable) Bfs {
 //
 // Zig 0.16 stopped linking musl's memset in favour of a Zig implementation in
 // compiler_rt that compiles to a byte-at-a-time loop (ziglang/zig#32091, fixed
-// in the 0.17 milestone). Clearing these 256 KiB of buckets four times per
-// sort() call is the hottest thing in the program, so it alone costs ~1.5x
+// in the 0.17 milestone). Clearing these 256 KiB of buckets twice per sort()
+// call is the hottest thing in the program, so it alone costs ~1.5x
 // end-to-end.
 //
 // Wasm is excluded deliberately, bulk_memory lowers @memset to a single
@@ -35,13 +35,14 @@ inline fn clear(count: *align(64) [65536]u32) void {
   for (vectors) |*v| v.* = @splat(0);
 }
 
+// Sort by 32-bit hash to improve speed at the cost of duplication
 fn sort(self: *Bfs, len: u32) void {
   const S = struct {
     inline fn pass(in: []Board, out: []Board, count: *align(64) [65536]u32, idx: comptime_int) void {
-      const shift = comptime @as(u6, idx) * 16;
+      const shift = comptime @as(u5, idx) * 16;
       clear(count);
       for (in) |item| {
-        const radix: u16 = @truncate(item.data >> shift);
+        const radix: u16 = @truncate(item.hash(32) >> shift);
         count[radix] += 1;
       }
       var acc: u32 = 0;
@@ -51,7 +52,7 @@ fn sort(self: *Bfs, len: u32) void {
         item.* = old;
       }
       for (in) |item| {
-        const radix: u16 = @truncate(item.data >> shift);
+        const radix: u16 = @truncate(item.hash(32) >> shift);
         out[count[radix]] = item;
         count[radix] += 1;
       }
@@ -64,8 +65,6 @@ fn sort(self: *Bfs, len: u32) void {
 
   S.pass(items, scratch, &count, 0);
   S.pass(scratch, items, &count, 1);
-  S.pass(items, scratch, &count, 2);
-  S.pass(scratch, items, &count, 3);
 }
 
 const Result = struct {
