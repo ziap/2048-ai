@@ -1,78 +1,26 @@
-const CACHE_BITS = 20;
 const BFS_BUDGET = 655360;
 
-const Search = engine.Expectimax(*const Heuristic, CACHE_BITS);
-const Split = engine.Expectimax(CaptureEval, 0);
-const Combine = engine.Expectimax(ReplayEval, 0);
-
-// 4 root moves * 15 empty cells * 2 spawn values * 4 moves = 480 evaluations,
-// worst case, and no dedup happens along the way.
-const MAX_FRONTIER = 512;
+const MAX_POOL = 31;
+const WORKER_STACK = 256 * 1024;
 
 var ctx: struct {
   move_table: Board.MoveTable,
   heuristic: Heuristic,
-  cache: Search.Cache,
+  searcher: ParallelSearch,
+
+  // The depth this position is searched at, predicted from the position before
+  // it. Depth moves by a ply at a time and only as the board fills, so the
+  // prediction is almost always right -- and being a move late is what lets the
+  // BFS run alongside the search instead of in front of it.
+  prev_depth: u8,
 } = undefined;
 
-var frontier: [MAX_FRONTIER]u64 = undefined;
-var scores: [MAX_FRONTIER]f32 = undefined;
-var frontier_len: u32 = 0;
-var replay_idx: u32 = 0;
-
-const CaptureEval = struct {
-  pub fn evaluate(_: CaptureEval, board: Board) f32 {
-    if (frontier_len >= MAX_FRONTIER) unreachable;
-    frontier[frontier_len] = board.data;
-    frontier_len += 1;
-    return 0;
-  }
-};
-
-const ReplayEval = struct {
-  pub fn evaluate(_: ReplayEval, board: Board) f32 {
-    if (replay_idx >= frontier_len) unreachable;
-    if (frontier[replay_idx] != board.data) unreachable;
-    const score = scores[replay_idx];
-    replay_idx += 1;
-    return score;
-  }
-};
-
-const search_fn = blk: {
-  const expectimax: Search = .{
-    .move_table = &ctx.move_table,
-    .heuristic = &ctx.heuristic,
-    .cache = &ctx.cache,
-  };
-  break :blk expectimax.reset();
-};
-
-const split_fn = blk: {
-  const expectimax: Split = .{
-    .move_table = &ctx.move_table,
-    .heuristic = .{},
-    .cache = {},
-  };
-  break :blk expectimax.reset();
-};
-
-const combine_fn = blk: {
-  const expectimax: Combine = .{
-    .move_table = &ctx.move_table,
-    .heuristic = .{},
-    .cache = {},
-  };
-  break :blk expectimax.reset();
-};
-
-// Called once, by the worker that runs `search`. The pool parks before it
-// touches any of this, and the host holds the first search until every worker
-// has reported in.
+// Called once, by the worker that runs `search`.
 export fn init() void {
   ctx.move_table.init();
   ctx.heuristic.init();
-  _ = search_fn.inner.reset();
+  ctx.searcher.init(&ctx.move_table, &ctx.heuristic);
+  ctx.prev_depth = 0;
 }
 
 fn allocDepth(board: Board) u8 {
@@ -83,143 +31,61 @@ fn allocDepth(board: Board) u8 {
   const valid = board.filterMoves(&moves);
   const buffer = S.bfs_buffer[0..S.bfs_buffer.len];
   var bfs: Bfs = .new(buffer, &ctx.move_table);
-  return bfs.expand(valid.moves[0..valid.len]).depth + 1;
+  return bfs.expand(valid.moves[0..valid.len]).depth;
 }
 
-// -- worker pool --------------------------------------------------------------
-
-const MAX_POOL = 31;
-const WORKER_STACK = 256 * 1024;
-const ALL_WAITERS = ~@as(u32, 0);
-
-// Wasm globals stay per-instance while linear memory does not, so every
-// instance's __stack_pointer starts at the same address and they would all push
-// frames onto the same region. Pool workers move theirs here; the one running
-// `search` keeps the linker's stack.
-var stacks: [MAX_POOL][WORKER_STACK]u8 align(16) = undefined;
-var next_slot: u32 = 0;
-
-// `epoch` publishes a batch and is what parked workers block on. `cursor` is
-// [tag:8][index:24]: the tag stops a worker still draining batch k from taking
-// an index out of batch k + 1, since the cursor is reset the moment the last
-// task of k completes. `done` counts completed tasks rather than workers, so a
-// worker that never woke for this batch can't hold up the move.
-var epoch: u32 align(64) = 0;
-var batch_count: u32 = 0;
-var batch_depth: u32 = 0;
-var cursor: u32 align(64) = 0;
-var done: u32 align(64) = 0;
-
-inline fn setStackPointer(addr: [*]u8) void {
-  asm volatile (
-    \\ local.get %[ptr]
-    \\ global.set __stack_pointer
-    :
-    : [ptr] "r" (addr),
-  );
-}
-
-inline fn wait(ptr: *const u32, expected: u32) void {
-  _ = asm volatile (
-    \\ local.get %[ptr]
-    \\ local.get %[expected]
-    \\ i64.const -1 # infinite
-    \\ memory.atomic.wait32 0
-    \\ local.set %[ret]
-    : [ret] "=r" (-> u32),
-    : [ptr] "r" (ptr),
-      [expected] "r" (expected),
-  );
-}
-
-inline fn notify(ptr: *const u32, waiters: u32) void {
-  asm volatile (
-    \\ local.get %[ptr]
-    \\ local.get %[waiters]
-    \\ memory.atomic.notify 0
-    \\ drop # no need to know the waiter count
-    :
-    : [ptr] "r" (ptr),
-      [waiters] "r" (waiters),
-  );
-}
-
-fn grab(tag: u8, count: u32) ?u32 {
-  while (true) {
-    const cur = @atomicLoad(u32, &cursor, .seq_cst);
-    if (@as(u8, @truncate(cur >> 24)) != tag) return null;
-
-    const idx = cur & 0xffffff;
-    if (idx >= count) return null;
-
-    if (@cmpxchgWeak(u32, &cursor, cur, cur + 1, .seq_cst, .seq_cst) == null) return idx;
-  }
-}
-
-fn runTasks(tag: u8) void {
-  const count = @atomicLoad(u32, &batch_count, .seq_cst);
-  const depth: u8 = @intCast(@atomicLoad(u32, &batch_depth, .seq_cst));
-
-  while (grab(tag, count)) |idx| {
-    // Plain accesses: the epoch this worker acquired published the frontier,
-    // and the counter below publishes the score.
-    scores[idx] = search_fn.inner.expectNode(.{ .data = frontier[idx] }, depth);
-    if (@atomicRmw(u32, &done, .Add, 1, .seq_cst) + 1 >= count) notify(&done, 1);
-  }
-}
-
-// Claims a stack and never returns -- the calling worker parks here between
-// batches instead of going back to its event loop.
-export fn poolWorker() void {
-  const slot = @atomicRmw(u32, &next_slot, .Add, 1, .seq_cst);
-  if (slot >= MAX_POOL) return;
-
-  setStackPointer(@ptrFromInt(@intFromPtr(&stacks[slot]) + WORKER_STACK));
-
-  var seen = @atomicLoad(u32, &epoch, .seq_cst);
-  while (true) {
-    wait(&epoch, seen);
-    seen = @atomicLoad(u32, &epoch, .seq_cst);
-    runTasks(@truncate(seen));
-  }
+export fn reset_depth() void {
+  ctx.prev_depth = 0;
 }
 
 export fn search(board_data: u64) i32 {
   const board: Board = .{ .data = board_data };
+
+  const predicted = ctx.prev_depth;
+  const tag = ctx.searcher.request(board, predicted);
+
+  // Runs while the pool is already scoring the frontier, so nothing waits on
+  // it -- it settles what depth this move should have had, and predicts the
+  // next one.
   const depth = allocDepth(board);
+  ctx.prev_depth = depth;
 
-  frontier_len = 0;
-  _ = split_fn.call(board, 1);
-  const count = frontier_len;
-
-  if (count > 0) {
-    const next = @atomicLoad(u32, &epoch, .seq_cst) +% 1;
-    const tag: u8 = @truncate(next);
-
-    @atomicStore(u32, &batch_count, count, .seq_cst);
-    @atomicStore(u32, &batch_depth, depth - 1, .seq_cst);
-    @atomicStore(u32, &done, 0, .seq_cst);
-    @atomicStore(u32, &cursor, @as(u32, tag) << 24, .seq_cst);
-    @atomicStore(u32, &epoch, next, .seq_cst);
-    notify(&epoch, ALL_WAITERS);
-
-    // This thread is a worker too, so it drains the same queue before waiting
-    // on whoever is still busy.
-    runTasks(tag);
-
-    while (true) {
-      const finished = @atomicLoad(u32, &done, .seq_cst);
-      if (finished >= count) break;
-      wait(&done, finished);
-    }
-  }
-
-  replay_idx = 0;
-  const dir = combine_fn.call(board, 1);
+  const dir = ctx.searcher.finalize(tag, depth);
   return dir orelse -1;
+}
+
+// Claims a stack and never returns. Nothing here may need a stack frame of its
+// own: the prologue that would reserve one runs before the switch below, and
+// would take it from the linker's stack, which the searching thread owns.
+export fn poolWorker() noreturn {
+  const S = struct {
+    // Stack per worker in the shared memory
+    var stacks: [MAX_POOL][WORKER_STACK]u8 align(16) = undefined;
+    var next_slot: u32 = 0;
+  };
+
+  const slot = @atomicRmw(u32, &S.next_slot, .Add, 1, .seq_cst);
+
+  // JS must enforce worker limit
+  if (slot >= MAX_POOL) unreachable;
+
+  // Stacks grow down, so the pointer starts at the end
+  const stack = &S.stacks[slot];
+  const stack_ptr = stack[stack.len..].ptr;
+
+  asm volatile (
+    \\ local.get %[ptr]
+    \\ global.set __stack_pointer
+    :
+    : [ptr] "r" (stack_ptr),
+  );
+
+  ctx.searcher.poolLoop();
 }
 
 const engine = @import("engine");
 const Board = engine.Board;
 const Heuristic = engine.Heuristic;
 const Bfs = engine.Bfs;
+
+const ParallelSearch = @import("ParallelSearch.zig");

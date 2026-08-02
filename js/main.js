@@ -101,9 +101,12 @@ window.requestAnimationFrame(async () => {
 
   const toggleButton = document.querySelector('#ai-toggle');
 
-  function step() {
+  /**
+   * @param {boolean} restart 
+   */
+  function step(restart) {
     const board = currentState()
-    worker.postMessage(board)
+    worker.postMessage({ board, restart })
   }
 
   let randomDir = 0
@@ -120,7 +123,7 @@ window.requestAnimationFrame(async () => {
       game.keepPlaying = true
       game.actuator.clearMessage()
     }
-    if (aiRunning) step()
+    if (aiRunning) step(false)
   })
 
   function toggleAI(running) {
@@ -128,7 +131,7 @@ window.requestAnimationFrame(async () => {
       totalMove = 0
       startTime = Date.now()
       toggleButton.textContent = 'Stop'
-      step()
+      step(true)
     } else {
       const endTime = Date.now()
       console.log(`Time elapsed: ${(endTime - startTime) / 1000} seconds

@@ -43,7 +43,7 @@ using the seed `benchmark`, see the usage [below](#usage).
 - Table lookup for movement and evaluation
 - Depth allocation using memory-constrained BFS
 - Web version:
-  - Root parallelism (WIP: subtree parallelism)
+  - Subtree parallelism
 - Console version:
   - Game parallelism
   - Search budget configuration

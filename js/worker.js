@@ -11,7 +11,12 @@ addEventListener('message', async ({ data }) => {
 
   // search() runs the batch protocol itself: it publishes the frontier, works
   // the queue alongside the pool and blocks until the last task lands.
-  addEventListener('message', ({ data: board }) => postMessage(exports.search(board)))
+  addEventListener('message', ({ data: { board, restart } }) => {
+    if (restart) {
+      exports.reset_depth()
+    }
+    postMessage(exports.search(board))
+  })
 
   postMessage('ready')
 }, { once: true })
