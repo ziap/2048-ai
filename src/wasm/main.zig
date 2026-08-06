@@ -9,7 +9,6 @@ var ctx: struct {
   searcher: ParallelSearch,
 
   prev_depth: u8,
-  prev_salt: u64,
 } = undefined;
 
 // Called once, by the worker that runs `search`.
@@ -18,7 +17,6 @@ export fn init() void {
   ctx.heuristic.init();
   ctx.searcher.init(&ctx.move_table, &ctx.heuristic);
   ctx.prev_depth = 0;
-  ctx.prev_salt = 0;
 }
 
 fn allocDepth(valid: *const Board.ValidMoves) u8 {
@@ -27,13 +25,11 @@ fn allocDepth(valid: *const Board.ValidMoves) u8 {
   };
   const buffer = S.bfs_buffer[0..S.bfs_buffer.len];
   var bfs: Bfs = .new(buffer, &ctx.move_table);
-  bfs.formation = valid.formation;
-  return bfs.expand(valid.moves[0..valid.len]).depth;
+  return bfs.expand(valid.moves[0..valid.len], valid.formation).depth;
 }
 
 export fn reset_depth() void {
   ctx.prev_depth = 0;
-  ctx.prev_salt = 0;
 }
 
 export fn search(board_data: u64) i32 {
@@ -41,8 +37,8 @@ export fn search(board_data: u64) i32 {
   const moves = ctx.move_table.getMoves(board);
   const valid = board.filterMoves(&moves);
 
-  const salt = valid.formation.salt();
-  const predicted = if (salt == ctx.prev_salt) ctx.prev_depth else 0;
+  // `searcher.formation` is still the one the previous move ran under.
+  const predicted = if (valid.formation.eql(ctx.searcher.formation)) ctx.prev_depth else 0;
 
   const tag = ctx.searcher.request(board, valid.formation, predicted);
 
@@ -51,7 +47,6 @@ export fn search(board_data: u64) i32 {
   // next one.
   const depth = allocDepth(&valid);
   ctx.prev_depth = depth;
-  ctx.prev_salt = salt;
 
   const dir = ctx.searcher.finalize(tag, depth);
   return dir orelse -1;

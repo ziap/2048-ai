@@ -70,7 +70,6 @@ inline fn searcher(self: *ParallelSearch) Search {
     .move_table = self.move_table,
     .heuristic = self.heuristic,
     .cache = &self.cache,
-    .formation = self.formation,
   };
 }
 
@@ -79,9 +78,8 @@ inline fn splitter(self: *ParallelSearch) Split.Fn {
     .move_table = self.move_table,
     .heuristic = .{ .owner = self },
     .cache = {},
-    .formation = self.formation,
   };
-  return expectimax.reset();
+  return expectimax.reset(self.formation);
 }
 
 inline fn combiner(self: *ParallelSearch) Combine.Fn {
@@ -89,9 +87,8 @@ inline fn combiner(self: *ParallelSearch) Combine.Fn {
     .move_table = self.move_table,
     .heuristic = .{ .owner = self },
     .cache = {},
-    .formation = self.formation,
   };
-  return expectimax.reset();
+  return expectimax.reset(self.formation);
 }
 
 inline fn wait(ptr: *const u32, expected: u32) void {
@@ -136,10 +133,12 @@ fn runTasks(self: *ParallelSearch, tag: u8) void {
   const depth: u8 = @intCast(@atomicLoad(u32, &self.batch_depth, .seq_cst));
   const search = self.searcher();
 
+  const formation = self.formation;
+
   while (self.grab(tag, count)) |idx| {
     // Plain accesses: the epoch this worker acquired published the frontier,
-    // and the counter below publishes the score.
-    self.scores[idx] = search.expectNode(.{ .data = self.frontier[idx] }, depth);
+    // the formation and the depth, and the counter below publishes the score.
+    self.scores[idx] = search.expectNode(.{ .data = self.frontier[idx] }, depth, formation);
     if (@atomicRmw(u32, &self.done, .Add, 1, .seq_cst) + 1 >= count) notify(&self.done, 1);
   }
 }
@@ -181,7 +180,7 @@ pub fn init(self: *ParallelSearch, move_table: *const Board.MoveTable, heuristic
   self.done = 0;
 
   // Clears the transposition table
-  _ = self.searcher().reset();
+  _ = self.searcher().reset(null);
 }
 
 // Builds the frontier for `board` and hands it to the pool at `depth`,
@@ -190,7 +189,9 @@ pub fn init(self: *ParallelSearch, move_table: *const Board.MoveTable, heuristic
 pub fn request(self: *ParallelSearch, board: Board, formation: Board.Formation, depth: u8) u8 {
   self.board = board;
   self.frontier_len = 0;
+
   self.formation = formation;
+  _ = self.searcher().reset(formation);
 
   const split = self.splitter();
   _ = split.call(board, 1);

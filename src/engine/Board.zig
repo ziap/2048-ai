@@ -270,8 +270,8 @@ pub const Formation = struct {
     return board.atLeast(self.rank) & self.cells == self.cells;
   }
 
-  pub inline fn salt(self: Formation) u64 {
-    return (self.cells *% MULT) ^ self.rank;
+  pub inline fn eql(self: Formation, other: Formation) bool {
+    return self.cells == other.cells and self.rank == other.rank;
   }
 };
 

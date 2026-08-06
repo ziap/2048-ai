@@ -4,7 +4,6 @@ current: []Board,
 next: []Board,
 
 move_table: *const Board.MoveTable,
-formation: Board.Formation = .none,
 
 pub inline fn new(buffer: []Board, move_table: *const Board.MoveTable) Bfs {
   const mid = buffer.len / 2;
@@ -75,7 +74,7 @@ const Result = struct {
   depth: u8,
 };
 
-pub fn expand(self: *Bfs, initial: []const Board) Result {
+pub fn expand(self: *Bfs, initial: []const Board, formation: Board.Formation) Result {
   @memcpy(self.current[0..initial.len], initial);
   var current_len: u32 = @intCast(initial.len);
 
@@ -105,7 +104,7 @@ pub fn expand(self: *Bfs, initial: []const Board) Result {
         for ([_]Board{ next2, next4 }) |spawned| {
           for (self.move_table.getMoves(spawned)) |moved| {
             if (moved.data == spawned.data) continue;
-            if (!self.formation.intact(moved)) continue;
+            if (!formation.intact(moved)) continue;
             if (next_len == self.next.len) break :search;
 
             self.next[next_len] = moved;
