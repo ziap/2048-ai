@@ -4,6 +4,7 @@ current: []Board,
 next: []Board,
 
 move_table: *const Board.MoveTable,
+formation: Board.Formation = .none,
 
 pub inline fn new(buffer: []Board, move_table: *const Board.MoveTable) Bfs {
   const mid = buffer.len / 2;
@@ -104,6 +105,7 @@ pub fn expand(self: *Bfs, initial: []const Board) Result {
         for ([_]Board{ next2, next4 }) |spawned| {
           for (self.move_table.getMoves(spawned)) |moved| {
             if (moved.data == spawned.data) continue;
+            if (!self.formation.intact(moved)) continue;
             if (next_len == self.next.len) break :search;
 
             self.next[next_len] = moved;

@@ -3,6 +3,8 @@ pub const RIGHT: u2 = 1;
 pub const DOWN: u2 = 2;
 pub const LEFT: u2 = 3;
 
+const MULT = 0xf1357aea2e62a9c5;
+
 const Board = @This();
 const Fmc256 = @import("Fmc256.zig");
 
@@ -172,16 +174,27 @@ pub const MoveTable = struct {
   }
 };
 
-const ValidMoves = struct {
+pub const ValidMoves = struct {
   len: u5,
   moves: [4]Board,
+  formation: Formation,
 };
 
 pub fn filterMoves(self: Board, moves: *const [4]Board) ValidMoves {
   var result: ValidMoves = .{
     .len = 0,
     .moves = undefined,
+    .formation = self.formation(),
   };
+
+  inline for (moves) |move| {
+    if (move.data != self.data and result.formation.intact(move)) {
+      result.moves[result.len] = move;
+      result.len += 1;
+    }
+  }
+
+  if (result.len > 0) return result;
 
   inline for (moves) |move| {
     if (move.data != self.data) {
@@ -190,6 +203,7 @@ pub fn filterMoves(self: Board, moves: *const [4]Board) ValidMoves {
     }
   }
 
+  result.formation = .none;
   return result;
 }
 
@@ -221,6 +235,90 @@ pub fn score(self: Board, four_count: u32) u32 {
 // comphensate its speed for some extra collisions
 pub inline fn hash(self: Board, bits: comptime_int) @Int(.unsigned, bits) {
   // MCG multiplier from: <https://arxiv.org/pdf/2001.05304>
-  const h = self.data *% 0xf1357aea2e62a9c5;
+  const h = self.data *% MULT;
   return @intCast(h >> (64 - bits));
+}
+
+// Cells holding a tile of at least `rank`, each marked 0xF
+// Adapted from `mask()` in 2048EndgameTablebase's WASM core:
+// <https://github.com/game-difficulty/2048EndgameTablebase>
+pub inline fn atLeast(self: Board, rank: u4) u64 {
+  const LANES: u64 = 0x0F0F0F0F0F0F0F0F;
+  const GUARD: u64 = 0x8080808080808080;
+
+  const evens = self.data & LANES;
+  const odds = (self.data >> 4) & LANES;
+  const addend = (0x80 - @as(u64, rank)) *% 0x0101010101010101;
+
+  const even_hit = (evens +% addend) & GUARD;
+  const odd_hit = (odds +% addend) & GUARD;
+
+  const even_cells = (even_hit >> 3) -% (even_hit >> 7);
+  const odd_cells = (odd_hit >> 3) -% (odd_hit >> 7);
+
+  return even_cells | (odd_cells << 4);
+}
+
+pub const Formation = struct {
+  cells: u64,
+  rank: u4,
+
+  pub const none: Formation = .{ .cells = 0, .rank = 0 };
+
+  pub inline fn intact(self: Formation, board: Board) bool {
+    if (self.cells == 0) return true;
+    return board.atLeast(self.rank) & self.cells == self.cells;
+  }
+
+  pub inline fn salt(self: Formation) u64 {
+    return (self.cells *% MULT) ^ self.rank;
+  }
+};
+
+const FORMATIONS = [_]u64{
+  // 2x2 corner block plus one cell extending along the row or down the column
+  0x00000000ff00fff0, 0x0fff00ff00000000, 0x0000000f00ff00ff, 0xff00ff00f0000000,
+  0xfff0ff0000000000, 0x00ff00ff000f0000, 0x0000f000ff00ff00, 0x0000000000ff0fff,
+  // 2x2 corner block
+  0xff00ff0000000000, 0x00ff00ff00000000, 0x00000000ff00ff00, 0x0000000000ff00ff,
+  // corner L
+  0xff00f00000000000, 0x00ff000f00000000, 0x00000000f000ff00, 0x00000000000f00ff,
+  // corner plus one neighbour, along the row or down the column
+  0xff00000000000000, 0x000f000f00000000, 0x00000000f000f000, 0x00000000000000ff,
+  0x000000000000ff00, 0x00ff000000000000, 0x00000000000f000f, 0xf000f00000000000,
+};
+
+// Largest corner region whose cells all hold a tile at or above the cutoff
+pub fn formation(self: Board) Formation {
+  const MIN_RANK = 9;
+
+  var present: u16 = 0;
+  var repeated: u16 = 0;
+  var data = self.data;
+
+  for (0..16) |_| {
+    const tile: u4 = @truncate(data);
+    data >>= 4;
+    if (tile < MIN_RANK) continue;
+
+    const bit = @as(u16, 1) << tile;
+    repeated |= present & bit;
+    present |= bit;
+  }
+
+  if (present == 0) return .none;
+
+  const cutoff: u4 = @intCast(@min(@as(u32, @ctz(present)) + 1, 15));
+
+  // Two equal tiles at or above the cutoff can still merge
+  if (repeated >> cutoff != 0) return .none;
+
+  const big = self.atLeast(cutoff);
+  for (FORMATIONS) |cells| {
+    if (big & cells == cells) {
+      return .{ .cells = cells, .rank = cutoff };
+    }
+  }
+
+  return .none;
 }

@@ -8,11 +8,8 @@ var ctx: struct {
   heuristic: Heuristic,
   searcher: ParallelSearch,
 
-  // The depth this position is searched at, predicted from the position before
-  // it. Depth moves by a ply at a time and only as the board fills, so the
-  // prediction is almost always right -- and being a move late is what lets the
-  // BFS run alongside the search instead of in front of it.
   prev_depth: u8,
+  prev_salt: u64,
 } = undefined;
 
 // Called once, by the worker that runs `search`.
@@ -21,34 +18,40 @@ export fn init() void {
   ctx.heuristic.init();
   ctx.searcher.init(&ctx.move_table, &ctx.heuristic);
   ctx.prev_depth = 0;
+  ctx.prev_salt = 0;
 }
 
-fn allocDepth(board: Board) u8 {
+fn allocDepth(valid: *const Board.ValidMoves) u8 {
   const S = struct {
     var bfs_buffer: [BFS_BUDGET]Board = undefined;
   };
-  const moves = ctx.move_table.getMoves(board);
-  const valid = board.filterMoves(&moves);
   const buffer = S.bfs_buffer[0..S.bfs_buffer.len];
   var bfs: Bfs = .new(buffer, &ctx.move_table);
+  bfs.formation = valid.formation;
   return bfs.expand(valid.moves[0..valid.len]).depth;
 }
 
 export fn reset_depth() void {
   ctx.prev_depth = 0;
+  ctx.prev_salt = 0;
 }
 
 export fn search(board_data: u64) i32 {
   const board: Board = .{ .data = board_data };
+  const moves = ctx.move_table.getMoves(board);
+  const valid = board.filterMoves(&moves);
 
-  const predicted = ctx.prev_depth;
-  const tag = ctx.searcher.request(board, predicted);
+  const salt = valid.formation.salt();
+  const predicted = if (salt == ctx.prev_salt) ctx.prev_depth else 0;
+
+  const tag = ctx.searcher.request(board, valid.formation, predicted);
 
   // Runs while the pool is already scoring the frontier, so nothing waits on
   // it -- it settles what depth this move should have had, and predicts the
   // next one.
-  const depth = allocDepth(board);
+  const depth = allocDepth(&valid);
   ctx.prev_depth = depth;
+  ctx.prev_salt = salt;
 
   const dir = ctx.searcher.finalize(tag, depth);
   return dir orelse -1;

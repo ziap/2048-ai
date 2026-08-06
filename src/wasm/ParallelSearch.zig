@@ -17,6 +17,7 @@ heuristic: *const Heuristic,
 cache: Search.Cache,
 
 board: Board,
+formation: Board.Formation,
 
 // Written by `request`, read by every worker; the scores go back the
 // other way. Publishing the epoch releases the first, the completion
@@ -69,6 +70,7 @@ inline fn searcher(self: *ParallelSearch) Search {
     .move_table = self.move_table,
     .heuristic = self.heuristic,
     .cache = &self.cache,
+    .formation = self.formation,
   };
 }
 
@@ -77,6 +79,7 @@ inline fn splitter(self: *ParallelSearch) Split.Fn {
     .move_table = self.move_table,
     .heuristic = .{ .owner = self },
     .cache = {},
+    .formation = self.formation,
   };
   return expectimax.reset();
 }
@@ -86,6 +89,7 @@ inline fn combiner(self: *ParallelSearch) Combine.Fn {
     .move_table = self.move_table,
     .heuristic = .{ .owner = self },
     .cache = {},
+    .formation = self.formation,
   };
   return expectimax.reset();
 }
@@ -168,6 +172,7 @@ pub fn init(self: *ParallelSearch, move_table: *const Board.MoveTable, heuristic
 
   self.frontier_len = 0;
   self.replay_idx = 0;
+  self.formation = .none;
 
   self.epoch = 0;
   self.batch_count = 0;
@@ -182,9 +187,10 @@ pub fn init(self: *ParallelSearch, move_table: *const Board.MoveTable, heuristic
 // Builds the frontier for `board` and hands it to the pool at `depth`,
 // Returns the batch tag for `finalize`. The pool is already working
 // when this returns.
-pub fn request(self: *ParallelSearch, board: Board, depth: u8) u8 {
+pub fn request(self: *ParallelSearch, board: Board, formation: Board.Formation, depth: u8) u8 {
   self.board = board;
   self.frontier_len = 0;
+  self.formation = formation;
 
   const split = self.splitter();
   _ = split.call(board, 1);

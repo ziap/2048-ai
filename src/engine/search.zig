@@ -26,23 +26,23 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
         return @as(u40, @bitCast(data));
       }
 
-      fn insert(self: *Cache, board: Board, depth: u8, score: f32) void {
+      fn insert(self: *Cache, board: Board, depth: u8, score: f32, salt: u64) void {
         const data: Data = .{ .depth = depth, .score = score };
         // Volatile so both halves are written exactly once, in this order.
         const entry: *volatile Entry = &self.entries[board.hash(cache_bits)];
 
-        entry.key = board.data ^ mix(data);
+        entry.key = board.data ^ mix(data) ^ salt;
         entry.data = data;
       }
 
-      fn query(self: *Cache, board: Board, depth: u8) ?f32 {
+      fn query(self: *Cache, board: Board, depth: u8, salt: u64) ?f32 {
         // Volatile so neither half can be reloaded after the check below.
         const entry: *volatile Entry = &self.entries[board.hash(cache_bits)];
 
         const key = entry.key;
         const data = entry.data;
 
-        if (key ^ mix(data) != board.data) return null;
+        if (key ^ mix(data) ^ salt != board.data) return null;
         if (data.depth < depth) return null;
 
         return data.score;
@@ -54,6 +54,7 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
     move_table: *const Board.MoveTable,
     heuristic: Eval,
     cache: if (transposition) *Cache else void,
+    formation: Board.Formation = .none,
 
     pub const Fn = struct {
       inner: Self,
@@ -63,7 +64,7 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
         var best_score: f32 = 0;
 
         inline for (self.inner.move_table.getMoves(board), 0..) |next_board, dir| {
-          if (next_board.data != board.data) {
+          if (next_board.data != board.data and self.inner.formation.intact(next_board)) {
             const score = self.inner.expectNode(next_board, depth);
             if (score > best_score) {
               best_score = score;
@@ -100,7 +101,7 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
       }
 
       if (transposition) {
-        if (self.cache.query(board, depth)) |score| {
+        if (self.cache.query(board, depth, self.formation.salt())) |score| {
           return score;
         }
       }
@@ -121,7 +122,7 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
       }
 
       if (transposition) {
-        self.cache.insert(board, depth, score);
+        self.cache.insert(board, depth, score, self.formation.salt());
       }
       return score;
     }
@@ -131,7 +132,7 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
 
       var max_score: f32 = 0;
       inline for (moves) |next_board| {
-        if (next_board.data != board.data) {
+        if (next_board.data != board.data and self.formation.intact(next_board)) {
           max_score = @max(max_score, self.expectNode(next_board, depth - 1));
         }
       }

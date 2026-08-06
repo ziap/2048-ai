@@ -67,11 +67,15 @@ pub fn run_games(self: *Worker, out: *Stats) !void {
     var total_time: f64 = 0;
     var total_move: u64 = 0;
 
-    const search = self.expectimax.reset();
+    var search = self.expectimax.reset();
     while (true) {
       const moves = self.move_table.getMoves(board);
       const valid = board.filterMoves(&moves);
+
       const start_time = std.Io.Timestamp.now(self.io, .awake);
+      bfs.formation = valid.formation;
+      search.inner.formation = valid.formation;
+
       const depth = bfs.expand(valid.moves[0..valid.len]).depth + 1;
       const dir = search.call(board, depth) orelse break;
       const done_time = std.Io.Timestamp.now(self.io, .awake);
