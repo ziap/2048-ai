@@ -6,8 +6,8 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
     pub const Cache = if (transposition) struct {
       const CACHE_SIZE = 1 << cache_bits;
 
-      const Data = packed struct(u40) {
-        depth: u8,
+      const Data = packed struct(u38) {
+        depth: u6,
         score: f32,
       };
 
@@ -15,10 +15,6 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
         key: u64,
         data: Data,
       };
-
-      comptime {
-        if (@sizeOf(Entry) != 16) @compileError("entry must stay a 16-byte pair");
-      }
 
       entries: [CACHE_SIZE]Entry align(64),
       formation: Board.Formation,
@@ -38,10 +34,10 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
       }
 
       inline fn mix(data: Data) u64 {
-        return @as(u40, @bitCast(data));
+        return @as(u38, @bitCast(data));
       }
 
-      fn insert(self: *Cache, board: Board, depth: u8, score: f32) void {
+      fn insert(self: *Cache, board: Board, depth: u6, score: f32) void {
         const data: Data = .{ .depth = depth, .score = score };
         // Volatile so both halves are written exactly once, in this order.
         const entry: *volatile Entry = &self.entries[board.hash(cache_bits)];
@@ -50,7 +46,7 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
         entry.data = data;
       }
 
-      fn query(self: *Cache, board: Board, depth: u8) ?f32 {
+      fn query(self: *Cache, board: Board, depth: u6) ?f32 {
         // Volatile so neither half can be reloaded after the check below.
         const entry: *volatile Entry = &self.entries[board.hash(cache_bits)];
 
@@ -74,7 +70,7 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
       inner: Self,
       formation: Board.Formation,
 
-      pub fn call(self: *const Fn, board: Board, depth: u8) ?u2 {
+      pub fn call(self: *const Fn, board: Board, depth: u6) ?u2 {
         var best_move: ?u2 = null;
         var best_score: f32 = 0;
 
@@ -108,7 +104,7 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
       };
     }
 
-    pub fn expectNode(self: *const Self, board: Board, depth: u8, formation: Board.Formation) f32 {
+    pub fn expectNode(self: *const Self, board: Board, depth: u6, formation: Board.Formation) f32 {
       if (depth == 0) {
         return self.heuristic.evaluate(board);
       }
@@ -140,7 +136,7 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
       return score;
     }
 
-    fn maxNode(self: *const Self, board: Board, depth: u8, formation: Board.Formation) f32 {
+    fn maxNode(self: *const Self, board: Board, depth: u6, formation: Board.Formation) f32 {
       const moves = self.move_table.getMoves(board);
 
       var max_score: f32 = 0;

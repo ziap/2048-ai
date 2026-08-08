@@ -71,17 +71,18 @@ const OVERFLOW_MARGIN = 2;
 
 const Result = struct {
   boards: []const Board,
-  depth: u8,
+  depth: u6,
 };
 
 pub fn expand(self: *Bfs, initial: []const Board, formation: Board.Formation) Result {
   @memcpy(self.current[0..initial.len], initial);
   var current_len: u32 = @intCast(initial.len);
 
-  var depth: u8 = 0;
+  var depth: u6 = 0;
   var prev_len: u32 = 1;
 
-  search: while (current_len > 0) {
+  const MAX_DEPTH: u6 = @truncate(-1);
+  search: while (current_len > 0 and depth < MAX_DEPTH) {
     self.sort(current_len);
 
     const estimate = @as(u64, current_len) * current_len / prev_len;

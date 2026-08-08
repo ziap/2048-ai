@@ -8,7 +8,7 @@ var ctx: struct {
   heuristic: Heuristic,
   searcher: ParallelSearch,
 
-  prev_depth: u8,
+  prev_depth: u6,
 } = undefined;
 
 // Called once, by the worker that runs `search`.
@@ -19,7 +19,7 @@ export fn init() void {
   ctx.prev_depth = 0;
 }
 
-fn allocDepth(valid: *const Board.ValidMoves) u8 {
+fn allocDepth(valid: *const Board.ValidMoves) u6 {
   const S = struct {
     var bfs_buffer: [BFS_BUDGET]Board = undefined;
   };

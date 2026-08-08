@@ -76,7 +76,7 @@ pub fn run_games(self: *Worker, out: *Stats) !void {
       const start_time = std.Io.Timestamp.now(self.io, .awake);
       const search = self.expectimax.reset(valid.formation);
 
-      const depth = bfs.expand(valid.moves[0..valid.len], valid.formation).depth + 1;
+      const depth = bfs.expand(valid.moves[0..valid.len], valid.formation).depth +| 1;
       const dir = search.call(board, depth) orelse break;
       const done_time = std.Io.Timestamp.now(self.io, .awake);
       const duration = start_time.durationTo(done_time);

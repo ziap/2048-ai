@@ -130,7 +130,7 @@ fn grab(self: *ParallelSearch, tag: u8, count: u32) ?u32 {
 
 fn runTasks(self: *ParallelSearch, tag: u8) void {
   const count = @atomicLoad(u32, &self.batch_count, .seq_cst);
-  const depth: u8 = @intCast(@atomicLoad(u32, &self.batch_depth, .seq_cst));
+  const depth: u6 = @intCast(@atomicLoad(u32, &self.batch_depth, .seq_cst));
   const search = self.searcher();
 
   const formation = self.formation;
@@ -143,7 +143,7 @@ fn runTasks(self: *ParallelSearch, tag: u8) void {
   }
 }
 
-fn publish(self: *ParallelSearch, depth: u8) u8 {
+fn publish(self: *ParallelSearch, depth: u6) u8 {
   const next = @atomicLoad(u32, &self.epoch, .seq_cst) +% 1;
   const tag: u8 = @truncate(next);
 
@@ -186,7 +186,7 @@ pub fn init(self: *ParallelSearch, move_table: *const Board.MoveTable, heuristic
 // Builds the frontier for `board` and hands it to the pool at `depth`,
 // Returns the batch tag for `finalize`. The pool is already working
 // when this returns.
-pub fn request(self: *ParallelSearch, board: Board, formation: Board.Formation, depth: u8) u8 {
+pub fn request(self: *ParallelSearch, board: Board, formation: Board.Formation, depth: u6) u8 {
   self.board = board;
   self.frontier_len = 0;
 
@@ -206,7 +206,7 @@ pub fn request(self: *ParallelSearch, board: Board, formation: Board.Formation, 
 // Waits out the batch `request` handed over, re-running it if `depth`
 // came out / deeper than what was predicted, and returns the move the
 // scores choose.
-pub fn finalize(self: *ParallelSearch, tag: u8, depth: u8) ?u2 {
+pub fn finalize(self: *ParallelSearch, tag: u8, depth: u6) ?u2 {
   const count = self.frontier_len;
 
   if (count > 0) {

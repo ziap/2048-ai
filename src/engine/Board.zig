@@ -235,7 +235,7 @@ pub fn score(self: Board, four_count: u32) u32 {
 // comphensate its speed for some extra collisions
 pub inline fn hash(self: Board, bits: comptime_int) @Int(.unsigned, bits) {
   // MCG multiplier from: <https://arxiv.org/pdf/2001.05304>
-  const h = self.data *% MULT;
+  const h = (self.data ^ (self.data >> 38)) *% MULT;
   return @intCast(h >> (64 - bits));
 }
 
