@@ -3,8 +3,6 @@ pub const RIGHT: u2 = 1;
 pub const DOWN: u2 = 2;
 pub const LEFT: u2 = 3;
 
-const MULT = 0xf1357aea2e62a9c5;
-
 const Board = @This();
 const Fmc256 = @import("Fmc256.zig");
 
@@ -235,15 +233,16 @@ pub fn score(self: Board, four_count: u32) u32 {
 // comphensate its speed for some extra collisions
 pub inline fn hash(self: Board, bits: comptime_int) @Int(.unsigned, bits) {
   // MCG multiplier from: <https://arxiv.org/pdf/2001.05304>
-  const h = (self.data ^ (self.data >> 38)) *% MULT;
+  const h = self.data *% 0xf1357aea2e62a9c5;
   return @intCast(h >> (64 - bits));
 }
 
 // Cells holding a tile of at least `rank`, each marked 0xF
 // Adapted from `mask()` in 2048EndgameTablebase's WASM core:
 // <https://github.com/game-difficulty/2048EndgameTablebase>
+const LANES: u64 = 0x0F0F0F0F0F0F0F0F;
+
 pub inline fn atLeast(self: Board, rank: u4) u64 {
-  const LANES: u64 = 0x0F0F0F0F0F0F0F0F;
   const GUARD: u64 = 0x8080808080808080;
 
   const evens = self.data & LANES;
@@ -260,18 +259,41 @@ pub inline fn atLeast(self: Board, rank: u4) u64 {
 }
 
 pub const Formation = struct {
-  cells: u64,
-  rank: u4,
+  // The cutoff comparison and the cells it applies to, both kept in the byte
+  // lanes `atLeast` works in. Storing the mask as the 0x80 flag the comparison
+  // already produces skips expanding it back to 0xF nibbles, and folding the
+  // cutoff into `addend` keeps a multiply off a path walked at every node.
+  even: u64,
+  odd: u64,
+  addend: u64,
 
-  pub const none: Formation = .{ .cells = 0, .rank = 0 };
+  pub const none: Formation = .{ .even = 0, .odd = 0, .addend = 0 };
 
   pub inline fn intact(self: Formation, board: Board) bool {
-    if (self.cells == 0) return true;
-    return board.atLeast(self.rank) & self.cells == self.cells;
+    if (self.even | self.odd == 0) return true;
+
+    const evens = board.data & LANES;
+    const odds = (board.data >> 4) & LANES;
+
+    return (evens +% self.addend) & self.even == self.even and
+      (odds +% self.addend) & self.odd == self.odd;
   }
 
   pub inline fn eql(self: Formation, other: Formation) bool {
-    return self.cells == other.cells and self.rank == other.rank;
+    return self.even == other.even and self.odd == other.odd and
+      self.addend == other.addend;
+  }
+
+  // Cells are 0xF per selected nibble; bit 0 of each byte lane says whether
+  // that lane's even nibble is selected, and bit 4 says the same for its odd
+  // nibble. Shifting either into bit 7 lines them up with the comparison.
+  fn init(cells: u64, cutoff: u4) Formation {
+    const ONES: u64 = 0x0101010101010101;
+    return .{
+      .even = (cells & ONES) << 7,
+      .odd = ((cells >> 4) & ONES) << 7,
+      .addend = (0x80 - @as(u64, cutoff)) *% ONES,
+    };
   }
 };
 
@@ -287,6 +309,19 @@ const FORMATIONS = [_]u64{
   0xff00000000000000, 0x000f000f00000000, 0x00000000f000f000, 0x00000000000000ff,
   0x000000000000ff00, 0x00ff000000000000, 0x00000000000f000f, 0xf000f00000000000,
 };
+
+inline fn maskedValue(self: Board, cells: u64) u64 {
+  var masked = self.data & cells;
+  var total: u64 = 0;
+
+  for (0..16) |_| {
+    const tile: u4 = @truncate(masked);
+    masked >>= 4;
+    total += @as(u64, @intFromBool(tile != 0)) << tile;
+  }
+
+  return total;
+}
 
 // Largest corner region whose cells all hold a tile at or above the cutoff
 pub fn formation(self: Board) Formation {
@@ -314,11 +349,19 @@ pub fn formation(self: Board) Formation {
   if (repeated >> cutoff != 0) return .none;
 
   const big = self.atLeast(cutoff);
+
+  var best: Formation = .none;
+  var best_value: u64 = 0;
+
   for (FORMATIONS) |cells| {
-    if (big & cells == cells) {
-      return .{ .cells = cells, .rank = cutoff };
-    }
+    if (big & cells != cells) continue;
+
+    const value = self.maskedValue(cells);
+    if (value <= best_value) continue;
+
+    best_value = value;
+    best = .init(cells, cutoff);
   }
 
-  return .none;
+  return best;
 }
