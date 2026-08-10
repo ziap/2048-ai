@@ -17,9 +17,9 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
       };
 
       entries: [CACHE_SIZE]Entry align(64),
-      formation: Board.Formation,
+      formation: Formation,
 
-      fn adopt(self: *Cache, formation: ?Board.Formation) void {
+      fn adopt(self: *Cache, formation: ?Formation) void {
         if (formation) |wanted| {
           if (self.formation.eql(wanted)) return;
           self.formation = wanted;
@@ -68,7 +68,7 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
 
     pub const Fn = struct {
       inner: Self,
-      formation: Board.Formation,
+      formation: Formation,
 
       pub fn call(self: *const Fn, board: Board, depth: u6) ?u2 {
         var best_move: ?u2 = null;
@@ -88,7 +88,7 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
       }
     };
 
-    pub fn reset(self: Self, formation: ?Board.Formation) Fn {
+    pub fn reset(self: Self, formation: ?Formation) Fn {
       if (transposition and !@inComptime()) {
         self.cache.adopt(formation);
       }
@@ -104,7 +104,7 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
       };
     }
 
-    pub fn expectNode(self: *const Self, board: Board, depth: u6, formation: Board.Formation) f32 {
+    pub fn expectNode(self: *const Self, board: Board, depth: u6, formation: Formation) f32 {
       if (depth == 0) {
         return self.heuristic.evaluate(board);
       }
@@ -136,7 +136,7 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
       return score;
     }
 
-    fn maxNode(self: *const Self, board: Board, depth: u6, formation: Board.Formation) f32 {
+    fn maxNode(self: *const Self, board: Board, depth: u6, formation: Formation) f32 {
       const moves = self.move_table.getMoves(board);
 
       var max_score: f32 = 0;
@@ -152,3 +152,4 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
 }
 
 const Board = @import("Board.zig");
+const Formation = @import("Formation.zig");

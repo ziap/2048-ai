@@ -74,7 +74,7 @@ const Result = struct {
   depth: u6,
 };
 
-pub fn expand(self: *Bfs, initial: []const Board, formation: Board.Formation) Result {
+pub fn expand(self: *Bfs, initial: []const Board, formation: Formation) Result {
   @memcpy(self.current[0..initial.len], initial);
   var current_len: u32 = @intCast(initial.len);
 
@@ -132,3 +132,4 @@ pub fn expand(self: *Bfs, initial: []const Board, formation: Board.Formation) Re
 
 const builtin = @import("builtin");
 const Board = @import("Board.zig");
+const Formation = @import("Formation.zig");

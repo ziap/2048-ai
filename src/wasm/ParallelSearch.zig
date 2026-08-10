@@ -17,7 +17,7 @@ heuristic: *const Heuristic,
 cache: Search.Cache,
 
 board: Board,
-formation: Board.Formation,
+formation: Formation,
 
 // Written by `request`, read by every worker; the scores go back the
 // other way. Publishing the epoch releases the first, the completion
@@ -186,7 +186,7 @@ pub fn init(self: *ParallelSearch, move_table: *const Board.MoveTable, heuristic
 // Builds the frontier for `board` and hands it to the pool at `depth`,
 // Returns the batch tag for `finalize`. The pool is already working
 // when this returns.
-pub fn request(self: *ParallelSearch, board: Board, formation: Board.Formation, depth: u6) u8 {
+pub fn request(self: *ParallelSearch, board: Board, formation: Formation, depth: u6) u8 {
   self.board = board;
   self.frontier_len = 0;
 
@@ -242,4 +242,5 @@ pub noinline fn poolLoop(self: *ParallelSearch) noreturn {
 
 const engine = @import("engine");
 const Board = engine.Board;
+const Formation = engine.Formation;
 const Heuristic = engine.Heuristic;
