@@ -12,11 +12,13 @@ AI, rewritten in Zig. You can find the old C++ version
 This AI is an Expectimax search run in parallel on your browser without any
 back-end server or browser control. You can even run it on a mobile device!
 
-The AI uses 4 web workers, each one is a WebAssembly module compiled from Zig
-to perform the Expectimax search for each available move. The move with the
-highest result is chosen. Because the search is done in parallel and the
-workers use heavy optimizations like bitboard representation, lookup tables,...
-the AI can search very deep, especially in difficult positions, very quickly.
+The AI uses a worker pool to search multiple subtrees in parallel. The search
+result of the subtrees are then aggregated to pick the final move. Each worker
+is a WebAssembly module compiled from Zig.
+
+Because the search is done in parallel and the workers use heavy optimizations
+like bitboard representation, lookup tables,... the AI can search very deep,
+especially in difficult positions, very quickly.
 
 ## Benchmark
 
@@ -27,10 +29,10 @@ results:
 
 | Budget | Speed          | Avg Score | % 32768 | % 16384 | % 8192 |
 | ------ | -------------- | --------- | ------- | ------- | ------ |
-| 2^15   | 1324.1 moves/s | 259989    | 3.6     | 58.2    | 91.6   |
-| 2^17   | 384.0 moves/s  | 319221    | 9.1     | 74.0    | 95.5   |
-| 2^19   | 119.5 moves/s  | 371887    | 17.6    | 84.6    | 98.1   |
-| 2^21   | 26.8 moves/s   | 419545    | 26.5    | 89.9    | 99.2   |
+| 2^15   | 1611.8 moves/s | 302036    | 6.8     | 69.2    | 94.5   |
+| 2^17   | 422.6 moves/s  | 374061    | 18.7    | 82.5    | 95.9   |
+| 2^19   | 128.4 moves/s  | 427012    | 33.5    | 86.2    | 94.9   |
+| 2^21   | 25.4 moves/s   | 422883    | 35.9    | 80.2    | 90.9   |
 
 The speed is computed by averaging 10 games in single-threaded mode, on an AMD
 Ryzen 5 5600G CPU. The average score and tile reaching rate is computed by
