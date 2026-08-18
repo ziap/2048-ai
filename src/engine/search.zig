@@ -89,16 +89,10 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
     }
 
     pub fn scoreFrontier(self: *const Self, board: Board, depth: u6) f32 {
-      return self.expectNode(board, depth, .get(board), Formation.largeTiles(board));
+      return self.expectNode(board, depth, .get(board));
     }
 
-    fn expectNode(
-      self: *const Self,
-      board: Board,
-      depth: u6,
-      formation: Formation,
-      inherited: u64,
-    ) f32 {
+    fn expectNode(self: *const Self, board: Board, depth: u6, formation: Formation) f32 {
       if (depth == 0) {
         return self.heuristic.evaluate(board);
       }
@@ -116,15 +110,16 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
       const w2 = 0.9 / total;
       const w4 = 0.1 / total;
 
-      const layout = Formation.largeTiles(board);
-      const held: Formation = if (layout == inherited) formation else .get(board);
+      // Spawning a 2 or a 4 cannot change which cells hold a large tile, so one
+      // update here covers every child below.
+      const nextFormation = formation.update(board);
 
       while (mask != 0) {
         const tile = mask & -%mask;
         mask ^= tile;
 
-        score += w2 * self.maxNode(.{ .data = board.data | tile, }, depth, held, layout);
-        score += w4 * self.maxNode(.{ .data = board.data | (tile << 1), }, depth, held, layout);
+        score += w2 * self.maxNode(.{ .data = board.data | tile, }, depth, nextFormation);
+        score += w4 * self.maxNode(.{ .data = board.data | (tile << 1), }, depth, nextFormation);
       }
 
       if (transposition) {
@@ -133,13 +128,13 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
       return score;
     }
 
-    fn maxNode(self: *const Self, board: Board, depth: u6, formation: Formation, layout: u64) f32 {
+    fn maxNode(self: *const Self, board: Board, depth: u6, formation: Formation) f32 {
       const moves = self.move_table.getMoves(board);
 
       var max_score: f32 = 0;
       inline for (moves) |next_board| {
         if (next_board.data != board.data and formation.intact(next_board)) {
-          max_score = @max(max_score, self.expectNode(next_board, depth - 1, formation, layout));
+          max_score = @max(max_score, self.expectNode(next_board, depth - 1, formation));
         }
       }
 

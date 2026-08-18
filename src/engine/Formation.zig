@@ -6,8 +6,14 @@ const Formation = @This();
 even: u64,
 odd: u64,
 addend: u64,
+layout: u64,
 
-pub const none: Formation = .{ .even = 0, .odd = 0, .addend = 0 };
+pub const none: Formation = .{
+  .even = 0,
+  .odd = 0,
+  .addend = 0,
+  .layout = 0,
+};
 
 // Cells holding a tile of at least `rank`, each marked 0xF
 // Adapted from `mask()` in 2048EndgameTablebase's WASM core:
@@ -45,16 +51,8 @@ pub inline fn largeTiles(board: Board) u64 {
   return board.data & atLeast(board, MIN_RANK);
 }
 
-// Cells are 0xF per selected nibble; bit 0 of each byte lane says whether
-// that lane's even nibble is selected, and bit 4 says the same for its odd
-// nibble. Shifting either into bit 7 lines them up with the comparison.
-fn init(cells: u64, cutoff: u4) Formation {
-  const ONES: u64 = 0x0101010101010101;
-  return .{
-    .even = (cells & ONES) << 7,
-    .odd = ((cells >> 4) & ONES) << 7,
-    .addend = (0x80 - @as(u64, cutoff)) *% ONES,
-  };
+pub inline fn update(self: Formation, board: Board) Formation {
+  return if (self.layout == largeTiles(board)) self else get(board);
 }
 
 const FORMATIONS = [_]u64{
@@ -85,6 +83,14 @@ inline fn maskedValue(board: Board, cells: u64) u64 {
 
 // Largest corner region whose cells all hold a tile at or above the cutoff
 pub fn get(board: Board) Formation {
+  const layout = largeTiles(board);
+  const empty: Formation = .{
+    .even = 0,
+    .odd = 0,
+    .addend = 0,
+    .layout = layout,
+  };
+
   var present: u16 = 0;
   var repeated: u16 = 0;
   var data = board.data;
@@ -99,16 +105,18 @@ pub fn get(board: Board) Formation {
     present |= bit;
   }
 
-  if (present == 0) return .none;
+  if (present == 0) return empty;
 
   const cutoff: u4 = @intCast(@min(@as(u32, @ctz(present)) + 1, 15));
 
   // Two equal tiles at or above the cutoff can still merge
-  if (repeated >> cutoff != 0) return .none;
+  if (repeated >> cutoff != 0) return empty;
 
+  const ONES: u64 = 0x0101010101010101;
   const big = atLeast(board, cutoff);
+  const addend = (0x80 - @as(u64, cutoff)) *% ONES;
 
-  var best: Formation = .none;
+  var best: Formation = empty;
   var best_value: u64 = 0;
 
   for (FORMATIONS) |cells| {
@@ -118,7 +126,15 @@ pub fn get(board: Board) Formation {
     if (value <= best_value) continue;
 
     best_value = value;
-    best = .init(cells, cutoff);
+    // Cells are 0xF per selected nibble; bit 0 of each byte lane says whether
+    // that lane's even nibble is selected, and bit 4 says the same for its odd
+    // nibble. Shifting either into bit 7 lines them up with the comparison.
+    best = .{
+      .even = (cells & ONES) << 7,
+      .odd = ((cells >> 4) & ONES) << 7,
+      .addend = addend,
+      .layout = layout,
+    };
   }
 
   return best;
