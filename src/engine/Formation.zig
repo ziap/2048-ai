@@ -13,6 +13,7 @@ pub const none: Formation = .{ .even = 0, .odd = 0, .addend = 0 };
 // Adapted from `mask()` in 2048EndgameTablebase's WASM core:
 // <https://github.com/game-difficulty/2048EndgameTablebase>
 const LANES: u64 = 0x0F0F0F0F0F0F0F0F;
+const MIN_RANK = 9;
 
 inline fn atLeast(board: Board, rank: u4) u64 {
   const GUARD: u64 = 0x8080808080808080;
@@ -40,9 +41,8 @@ pub inline fn intact(self: Formation, board: Board) bool {
     (odds +% self.addend) & self.odd == self.odd;
 }
 
-pub inline fn eql(self: Formation, other: Formation) bool {
-  return self.even == other.even and self.odd == other.odd and
-    self.addend == other.addend;
+pub inline fn largeTiles(board: Board) u64 {
+  return board.data & atLeast(board, MIN_RANK);
 }
 
 // Cells are 0xF per selected nibble; bit 0 of each byte lane says whether
@@ -85,8 +85,6 @@ inline fn maskedValue(board: Board, cells: u64) u64 {
 
 // Largest corner region whose cells all hold a tile at or above the cutoff
 pub fn get(board: Board) Formation {
-  const MIN_RANK = 9;
-
   var present: u16 = 0;
   var repeated: u16 = 0;
   var data = board.data;

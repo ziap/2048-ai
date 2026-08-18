@@ -25,7 +25,7 @@ fn allocDepth(valid: *const Board.ValidMoves) u6 {
   };
   const buffer = S.bfs_buffer[0..S.bfs_buffer.len];
   var bfs: Bfs = .new(buffer, &ctx.move_table);
-  return bfs.expand(valid.moves[0..valid.len], valid.formation).depth;
+  return bfs.expand(valid.moves[0..valid.len]).depth;
 }
 
 export fn reset_depth() void {
@@ -37,10 +37,7 @@ export fn search(board_data: u64) i32 {
   const moves = ctx.move_table.getMoves(board);
   const valid = board.filterMoves(&moves);
 
-  // `searcher.formation` is still the one the previous move ran under.
-  const predicted = if (valid.formation.eql(ctx.searcher.formation)) ctx.prev_depth else 0;
-
-  const tag = ctx.searcher.request(board, valid.formation, predicted);
+  const tag = ctx.searcher.request(&valid, ctx.prev_depth);
 
   // Runs while the pool is already scoring the frontier, so nothing waits on
   // it -- it settles what depth this move should have had, and predicts the

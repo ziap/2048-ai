@@ -175,33 +175,31 @@ pub const MoveTable = struct {
 pub const ValidMoves = struct {
   len: u5,
   moves: [4]Board,
-  formation: Formation,
+  dirs: [4]u2,
 };
 
 pub fn filterMoves(self: Board, moves: *const [4]Board) ValidMoves {
-  var result: ValidMoves = .{
-    .len = 0,
-    .moves = undefined,
-    .formation = .get(self),
-  };
+  var result: ValidMoves = .{ .len = 0, .moves = undefined, .dirs = undefined };
+  const formation: Formation = .get(self);
 
-  inline for (moves) |move| {
-    if (move.data != self.data and result.formation.intact(move)) {
+  inline for (moves, 0..) |move, dir| {
+    if (move.data != self.data and formation.intact(move)) {
       result.moves[result.len] = move;
+      result.dirs[result.len] = dir;
       result.len += 1;
     }
   }
 
   if (result.len > 0) return result;
 
-  inline for (moves) |move| {
+  inline for (moves, 0..) |move, dir| {
     if (move.data != self.data) {
       result.moves[result.len] = move;
+      result.dirs[result.len] = dir;
       result.len += 1;
     }
   }
 
-  result.formation = .none;
   return result;
 }
 

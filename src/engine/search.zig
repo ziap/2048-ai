@@ -17,16 +17,8 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
       };
 
       entries: [CACHE_SIZE]Entry align(64),
-      formation: Formation,
 
-      fn adopt(self: *Cache, formation: ?Formation) void {
-        if (formation) |wanted| {
-          if (self.formation.eql(wanted)) return;
-          self.formation = wanted;
-        } else {
-          self.formation = .none;
-        }
-
+      fn empty(self: *Cache) void {
         @memset(&self.entries, .{
           .key = 0,
           .data = .{ .depth = 0, .score = 0 },
@@ -66,34 +58,26 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
     heuristic: Eval,
     cache: if (transposition) *Cache else void,
 
-    pub const Fn = struct {
-      inner: Self,
-      formation: Formation,
+    pub fn call(self: *const Self, valid: *const Board.ValidMoves, depth: u6) ?u2 {
+      var best_move: ?u2 = null;
+      var best_score: f32 = 0;
 
-      pub fn call(self: *const Fn, board: Board, depth: u6) ?u2 {
-        var best_move: ?u2 = null;
-        var best_score: f32 = 0;
-
-        inline for (self.inner.move_table.getMoves(board), 0..) |next_board, dir| {
-          if (next_board.data != board.data and self.formation.intact(next_board)) {
-            const score = self.inner.expectNode(next_board, depth, self.formation);
-            if (score > best_score) {
-              best_score = score;
-              best_move = dir;
-            }
-          }
+      for (valid.moves[0..valid.len], valid.dirs[0..valid.len]) |move, dir| {
+        const score = self.scoreFrontier(move, depth);
+        if (score > best_score) {
+          best_score = score;
+          best_move = dir;
         }
-
-        return best_move;
-      }
-    };
-
-    pub fn reset(self: Self, formation: ?Formation) Fn {
-      if (transposition and !@inComptime()) {
-        self.cache.adopt(formation);
       }
 
-      return .{ .inner = self, .formation = formation orelse .none };
+      return best_move;
+    }
+
+    // Callers empty the table when starting a game, so that its result never
+    // depends on what the same worker played before it. Nothing else invalidates
+    // an entry.
+    pub fn clear(self: Self) void {
+      if (transposition and !@inComptime()) self.cache.empty();
     }
 
     pub fn new(move_table: *const Board.MoveTable, heuristic: Eval, cache: if (transposition) *Cache else void) @This() {
@@ -104,7 +88,17 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
       };
     }
 
-    pub fn expectNode(self: *const Self, board: Board, depth: u6, formation: Formation) f32 {
+    pub fn scoreFrontier(self: *const Self, board: Board, depth: u6) f32 {
+      return self.expectNode(board, depth, .get(board), Formation.largeTiles(board));
+    }
+
+    fn expectNode(
+      self: *const Self,
+      board: Board,
+      depth: u6,
+      formation: Formation,
+      inherited: u64,
+    ) f32 {
       if (depth == 0) {
         return self.heuristic.evaluate(board);
       }
@@ -122,12 +116,15 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
       const w2 = 0.9 / total;
       const w4 = 0.1 / total;
 
+      const layout = Formation.largeTiles(board);
+      const held: Formation = if (layout == inherited) formation else .get(board);
+
       while (mask != 0) {
         const tile = mask & -%mask;
         mask ^= tile;
 
-        score += w2 * self.maxNode(.{ .data = board.data | tile, }, depth, formation);
-        score += w4 * self.maxNode(.{ .data = board.data | (tile << 1), }, depth, formation);
+        score += w2 * self.maxNode(.{ .data = board.data | tile, }, depth, held, layout);
+        score += w4 * self.maxNode(.{ .data = board.data | (tile << 1), }, depth, held, layout);
       }
 
       if (transposition) {
@@ -136,13 +133,13 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
       return score;
     }
 
-    fn maxNode(self: *const Self, board: Board, depth: u6, formation: Formation) f32 {
+    fn maxNode(self: *const Self, board: Board, depth: u6, formation: Formation, layout: u64) f32 {
       const moves = self.move_table.getMoves(board);
 
       var max_score: f32 = 0;
       inline for (moves) |next_board| {
         if (next_board.data != board.data and formation.intact(next_board)) {
-          max_score = @max(max_score, self.expectNode(next_board, depth - 1, formation));
+          max_score = @max(max_score, self.expectNode(next_board, depth - 1, formation, layout));
         }
       }
 

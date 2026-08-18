@@ -16,8 +16,7 @@ move_table: *const Board.MoveTable,
 heuristic: *const Heuristic,
 cache: Search.Cache,
 
-board: Board,
-formation: Formation,
+valid: Board.ValidMoves,
 
 // Written by `request`, read by every worker; the scores go back the
 // other way. Publishing the epoch releases the first, the completion
@@ -73,22 +72,20 @@ inline fn searcher(self: *ParallelSearch) Search {
   };
 }
 
-inline fn splitter(self: *ParallelSearch) Split.Fn {
-  const expectimax: Split = .{
+inline fn splitter(self: *ParallelSearch) Split {
+  return .{
     .move_table = self.move_table,
     .heuristic = .{ .owner = self },
     .cache = {},
   };
-  return expectimax.reset(self.formation);
 }
 
-inline fn combiner(self: *ParallelSearch) Combine.Fn {
-  const expectimax: Combine = .{
+inline fn combiner(self: *ParallelSearch) Combine {
+  return .{
     .move_table = self.move_table,
     .heuristic = .{ .owner = self },
     .cache = {},
   };
-  return expectimax.reset(self.formation);
 }
 
 inline fn wait(ptr: *const u32, expected: u32) void {
@@ -133,12 +130,12 @@ fn runTasks(self: *ParallelSearch, tag: u8) void {
   const depth: u6 = @intCast(@atomicLoad(u32, &self.batch_depth, .seq_cst));
   const search = self.searcher();
 
-  const formation = self.formation;
-
   while (self.grab(tag, count)) |idx| {
-    // Plain accesses: the epoch this worker acquired published the frontier,
-    // the formation and the depth, and the counter below publishes the score.
-    self.scores[idx] = search.expectNode(.{ .data = self.frontier[idx] }, depth, formation);
+    // Plain accesses: the epoch this worker acquired published the frontier and
+    // the depth, and the counter below publishes the score.
+
+    const frontier: Board = .{ .data = self.frontier[idx] };
+    self.scores[idx] = search.scoreFrontier(frontier, depth);
     if (@atomicRmw(u32, &self.done, .Add, 1, .seq_cst) + 1 >= count) notify(&self.done, 1);
   }
 }
@@ -171,7 +168,7 @@ pub fn init(self: *ParallelSearch, move_table: *const Board.MoveTable, heuristic
 
   self.frontier_len = 0;
   self.replay_idx = 0;
-  self.formation = .none;
+  self.valid = .{ .len = 0, .moves = undefined, .dirs = undefined };
 
   self.epoch = 0;
   self.batch_count = 0;
@@ -179,22 +176,18 @@ pub fn init(self: *ParallelSearch, move_table: *const Board.MoveTable, heuristic
   self.cursor = 0;
   self.done = 0;
 
-  // Clears the transposition table
-  _ = self.searcher().reset(null);
+  self.searcher().clear();
 }
 
 // Builds the frontier for `board` and hands it to the pool at `depth`,
 // Returns the batch tag for `finalize`. The pool is already working
 // when this returns.
-pub fn request(self: *ParallelSearch, board: Board, formation: Formation, depth: u6) u8 {
-  self.board = board;
+pub fn request(self: *ParallelSearch, valid: *const Board.ValidMoves, depth: u6) u8 {
+  self.valid = valid.*;
   self.frontier_len = 0;
 
-  self.formation = formation;
-  _ = self.searcher().reset(formation);
-
   const split = self.splitter();
-  _ = split.call(board, 1);
+  _ = split.call(&self.valid, 1);
 
   // A position with no legal move produces no frontier, and nothing to
   // hand out
@@ -226,7 +219,7 @@ pub fn finalize(self: *ParallelSearch, tag: u8, depth: u6) ?u2 {
 
   self.replay_idx = 0;
   const combine = self.combiner();
-  return combine.call(self.board, 1);
+  return combine.call(&self.valid, 1);
 }
 
 // Parks until there is a batch, works it, parks again.
@@ -242,5 +235,4 @@ pub noinline fn poolLoop(self: *ParallelSearch) noreturn {
 
 const engine = @import("engine");
 const Board = engine.Board;
-const Formation = engine.Formation;
 const Heuristic = engine.Heuristic;
