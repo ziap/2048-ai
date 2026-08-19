@@ -142,6 +142,6 @@ Speed: ${totalMove * 1000 / (endTime - startTime)} moves/s`)
     aiRunning = running
   }
 
-  document.querySelector("#ai-step").addEventListener('click', step)
+  document.querySelector("#ai-step").addEventListener('click', () => step(true))
   toggleButton.addEventListener('click', () => toggleAI(!aiRunning))
 })
