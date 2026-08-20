@@ -8,7 +8,6 @@ pub const Dir = enum {
 pub const Moves = EnumMap(Dir, Board);
 
 const Board = @This();
-const Fmc256 = @import("Fmc256.zig");
 
 data: u64,
 
@@ -159,4 +158,7 @@ pub inline fn hash(self: Board, bits: comptime_int) @Int(.unsigned, bits) {
 }
 
 const Formation = @import("Formation.zig");
-const EnumMap = @import("enum_map.zig").EnumMap;
+
+const utils = @import("utils");
+const EnumMap = utils.EnumMap;
+const Fmc256 = utils.Fmc256;
