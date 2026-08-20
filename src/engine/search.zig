@@ -58,8 +58,8 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
     heuristic: Eval,
     cache: if (transposition) *Cache else void,
 
-    pub fn call(self: *const Self, valid: *const Board.ValidMoves, depth: u6) ?u2 {
-      var best_move: ?u2 = null;
+    pub fn call(self: *const Self, valid: *const Board.ValidMoves, depth: u6) ?Board.Dir {
+      var best_move: ?Board.Dir = null;
       var best_score: f32 = 0;
 
       for (valid.moves[0..valid.len], valid.dirs[0..valid.len]) |move, dir| {
@@ -132,7 +132,7 @@ pub fn Expectimax(Eval: type, comptime cache_bits: comptime_int) type {
       const moves = self.move_table.getMoves(board);
 
       var max_score: f32 = 0;
-      inline for (moves) |next_board| {
+      inline for (moves.values) |next_board| {
         if (next_board.data != board.data and formation.intact(next_board)) {
           max_score = @max(max_score, self.expectNode(next_board, depth - 1, formation));
         }

@@ -105,7 +105,7 @@ pub fn expand(self: *Bfs, initial: []const Board) Result {
         const next4: Board = .{ .data = last | (tile << 1) };
 
         for ([_]Board{ next2, next4 }) |spawned| {
-          for (self.move_table.getMoves(spawned)) |moved| {
+          for (self.move_table.getMoves(spawned).values) |moved| {
             if (moved.data == spawned.data) continue;
             if (!formation.intact(moved)) continue;
             if (next_len == self.next.len) break :search;

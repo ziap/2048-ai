@@ -45,8 +45,11 @@ export fn search(board_data: u64) i32 {
   const depth = allocDepth(&valid);
   ctx.prev_depth = depth;
 
-  const dir = ctx.searcher.finalize(tag, depth);
-  return dir orelse -1;
+  const searchResult = ctx.searcher.finalize(tag, depth);
+  if (searchResult) |dir| {
+    return @intFromEnum(dir);
+  }
+  return -1;
 }
 
 // Claims a stack and never returns. Nothing here may need a stack frame of its
