@@ -61,8 +61,7 @@ pub fn run_games(self: *Worker, out: *Stats) !void {
       jumped += 1;
     }
 
-    var rng = self.rng;
-    var board: Board, var four_count: u32 = Board.new(&rng);
+    var game: Game = .new(self.rng, self.move_table);
 
     var total_time: f64 = 0;
     var total_move: u64 = 0;
@@ -70,6 +69,7 @@ pub fn run_games(self: *Worker, out: *Stats) !void {
     self.expectimax.clear();
 
     while (true) {
+      const board = game.getBoard();
       const moves = self.move_table.getMoves(board);
       const valid = board.filterMoves(&moves);
 
@@ -79,15 +79,15 @@ pub fn run_games(self: *Worker, out: *Stats) !void {
       const dir = self.expectimax.call(&valid, depth) orelse break;
       const done_time = std.Io.Timestamp.now(self.io, .awake);
       const duration = start_time.durationTo(done_time);
+
+      game.executeMove(dir);
       total_time += @as(f64, @floatFromInt(duration.toNanoseconds()));
       total_move += 1;
-      board, const is_four = moves[dir].addTile(&rng);
-      four_count += is_four;
     }
 
     stats = stats.combine(&.fromResult(.{
-      .final_board = board,
-      .four_count = four_count,
+      .final_board = game.getBoard(),
+      .four_count = game.four_count,
       .total_time = total_time,
       .total_moves = total_move,
     }));
@@ -108,6 +108,7 @@ const std = @import("std");
 const engine = @import("engine");
 const Fmc256 = engine.Fmc256;
 const Board = engine.Board;
+const Game = engine.Game;
 const Heuristic = engine.Heuristic;
 const Bfs = engine.Bfs;
 

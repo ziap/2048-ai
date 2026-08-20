@@ -48,34 +48,6 @@ pub inline fn emptyPos(self: Board) u64 {
   return ~b & 0x1111111111111111;
 }
 
-pub fn addTile(self: Board, rng: *Fmc256) struct { Board, u1 } {
-  const mask = self.emptyPos();
-  const empty_count = @popCount(mask);
-
-  const tile = tile: {
-    const idx = rng.bounded(empty_count);
-    var t = mask;
-    for (0..idx) |_| {
-      t &= t - 1;
-    }
-    break :tile t & -%t;
-  };
-  const shift: u1 = if (rng.bounded(10) == 0) 1 else 0;
-
-  return .{
-    .{ .data = self.data | (tile << shift) },
-    shift,
-  };
-}
-
-pub inline fn new(rng: *Fmc256) struct { Board, u2 } {
-  const board: Board = .{ .data = 0 };
-  const board1, const is_four1 = board.addTile(rng);
-  const board2, const is_four2 = board1.addTile(rng);
-
-  return .{ board2, @as(u2, is_four1) + @as(u2, is_four2) };
-}
-
 pub inline fn transpose(self: Board) Board {
   var x = self.data;
   var b = (x ^ (x >> 12)) & 0x0000f0f00000f0f0;
