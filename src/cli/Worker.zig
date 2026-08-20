@@ -86,8 +86,7 @@ pub fn run_games(self: *Worker, out: *Stats) !void {
     }
 
     stats = stats.combine(&.fromResult(.{
-      .final_board = game.getBoard(),
-      .four_count = game.four_count,
+      .final_state = game.state,
       .total_time = total_time,
       .total_moves = total_move,
     }));

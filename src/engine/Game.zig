@@ -1,7 +1,73 @@
 const Game = @This();
 
-board: Board,
-four_count: u32,
+pub const State = struct {
+  board: Board,
+  four_count: u32,
+
+  pub const empty: State = .{
+    .board = .{ .data = 0 },
+    .four_count = 0,
+  };
+
+  pub fn display(self: State, out: anytype) !void {
+    const first_line = "+-------+-------+-------+-------+\n";
+    const line = "|\n" ++ first_line;
+
+    var data = self.board.data;
+    try out.writeAll(first_line);
+
+    for (0..4) |_| {
+      for (0..4) |_| {
+        const lut = comptime lut: {
+          const tiles = &.{
+            "     ", "    2", "    4", "    8",
+            "   16", "   32", "   64", "  128",
+            "  256", "  512", " 1024", " 2048",
+            " 4096", " 8192", "16384", "32768",
+          };
+
+          var lut: [tiles.len][]const u8 = undefined;
+          for (&lut, tiles) |*entry, tile| {
+            entry.* = "| " ++ tile ++ " ";
+          }
+
+          break :lut lut;
+        };
+
+        const tile = data >> 60;
+        data <<= 4;
+        try out.writeAll(lut[tile]);
+      }
+      try out.writeAll(line);
+    }
+  }
+
+  pub fn score(self: State) u32 {
+    var data = self.board.data;
+    var result: u32 = 0;
+    for (0..16) |_| {
+      const tile: u4 = @truncate(data);
+      result += @as(u32, tile -| 1) << tile;
+      data >>= 4;
+    }
+    return result - 4 * self.four_count;
+  }
+
+  pub fn maxTile(self: State) u5 {
+    var result: u4 = 0;
+    var data = self.board.data;
+
+    for (0..16) |_| {
+      const tile: u4 = @truncate(data);
+      result = @max(result, tile);
+      data >>= 4;
+    }
+
+    return result;
+  }
+};
+
+state: State,
 move_table: *const Board.MoveTable,
 rng: Fmc256,
 
@@ -32,22 +98,24 @@ pub fn new(rng: Fmc256, move_table: *const Board.MoveTable) Game {
   const board2, const is_four2 = addTile(board1, &local_rng);
 
   return .{
-    .board = board2,
-    .four_count = @as(u2, is_four1) + @as(u2, is_four2),
+    .state = .{
+      .board = board2,
+      .four_count = @as(u2, is_four1) + @as(u2, is_four2),
+    },
     .move_table = move_table,
     .rng = local_rng,
   };
 }
 
 pub inline fn getBoard(self: *const Game) Board {
-  return self.board;
+  return self.state.board;
 }
 
 pub fn executeMove(self: *Game, dir: u2) void {
-  const moves = self.move_table.getMoves(self.board);
+  const moves = self.move_table.getMoves(self.state.board);
   const board, const is_four = addTile(moves[dir], &self.rng);
-  self.board = board;
-  self.four_count += is_four;
+  self.state.board = board;
+  self.state.four_count += is_four;
 }
 
 const Board = @import("Board.zig");
