@@ -4,8 +4,7 @@ total_games: u32,
 total_time: f64,
 total_score: u64,
 total_moves: u64,
-best_game: Board,
-best_score: u32,
+best_game: Game.State,
 max_tiles: @Vector(16, u32),
 
 pub const empty: Stats = .{
@@ -13,41 +12,35 @@ pub const empty: Stats = .{
   .total_time = 0,
   .total_score = 0,
   .total_moves = 0,
-  .best_game = .{ .data = 0 },
-  .best_score = 0,
+  .best_game = .empty,
   .max_tiles = @splat(0),
 };
 
 pub fn fromResult(result: struct {
-  final_board: Board,
-  four_count: u32,
+  final_state: Game.State,
   total_time: f64,
   total_moves: u64,
 }) Stats {
-  const score = result.final_board.score(result.four_count);
   return .{
     .total_games = 1,
     .total_time = result.total_time,
     .total_moves = result.total_moves,
-    .total_score = score,
-    .best_game = result.final_board,
-    .best_score = score,
+    .total_score = result.final_state.score(),
+    .best_game = result.final_state,
     .max_tiles = max_tiles: {
       var max_tiles: [16]u32 = @splat(0);
-      max_tiles[result.final_board.maxTile()] = 1;
+      max_tiles[result.final_state.maxTile()] = 1;
       break :max_tiles max_tiles;
     },
   };
 }
 
 pub fn combine(self: *const Stats, other: *const Stats) Stats {
-  const best_game, const best_score = if (other.best_score > self.best_score) .{
-    other.best_game,
-    other.best_score,
-  } else .{
-    self.best_game,
-    self.best_score,
-  };
+  const best_game = if (other.best_game.score() > self.best_game.score())
+    other.best_game
+  else
+    self.best_game;
+
   return .{
     .total_games = self.total_games + other.total_games,
     .total_time = self.total_time + other.total_time,
@@ -55,7 +48,6 @@ pub fn combine(self: *const Stats, other: *const Stats) Stats {
     .total_moves = self.total_moves + other.total_moves,
     .max_tiles = self.max_tiles + other.max_tiles,
     .best_game = best_game,
-    .best_score = best_score,
   };
 }
 
@@ -69,7 +61,7 @@ pub fn display(self: *const Stats, out: anytype, comptime detail: bool) !void {
 
   try out.writeAll("=================== STATISTICS ===================\n");
   try out.print("Games Played : {d}\n", .{self.total_games});
-  try out.print("Score        : Max {d} | Avg {d:.2}\n", .{ self.best_score, avg_score });
+  try out.print("Score        : Max {d} | Avg {d:.2}\n", .{ self.best_game.score(), avg_score });
   try out.print("Performance  : {d:.2} moves/s | {d:.3}s cpu time\n", .{ speed, total_time });
   const max_tiles: [16]u32 = self.max_tiles;
   if (comptime detail) {
@@ -101,4 +93,4 @@ pub fn display(self: *const Stats, out: anytype, comptime detail: bool) !void {
 }
 
 const engine = @import("engine");
-const Board = engine.Board;
+const Game = engine.Game;

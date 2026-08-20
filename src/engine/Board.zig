@@ -8,39 +8,6 @@ const Fmc256 = @import("Fmc256.zig");
 
 data: u64,
 
-pub fn display(self: Board, out: anytype) !void {
-  const first_line = "+-------+-------+-------+-------+\n";
-  const line = "|\n" ++ first_line;
-
-  var data = self.data;
-  try out.writeAll(first_line);
-
-  for (0..4) |_| {
-    for (0..4) |_| {
-      const lut = comptime lut: {
-        const tiles = &.{
-          "     ", "    2", "    4", "    8",
-          "   16", "   32", "   64", "  128",
-          "  256", "  512", " 1024", " 2048",
-          " 4096", " 8192", "16384", "32768",
-        };
-
-        var lut: [tiles.len][]const u8 = undefined;
-        for (&lut, tiles) |*entry, tile| {
-          entry.* = "| " ++ tile ++ " ";
-        }
-
-        break :lut lut;
-      };
-
-      const tile = data >> 60;
-      data <<= 4;
-      try out.writeAll(lut[tile]);
-    }
-    try out.writeAll(line);
-  }
-}
-
 pub inline fn emptyPos(self: Board) u64 {
   var b = self.data;
   b |= (b >> 2) & 0x3333333333333333;
@@ -177,30 +144,6 @@ pub fn filterMoves(self: Board, moves: *const [4]Board) ValidMoves {
   }
 
   return result;
-}
-
-pub fn maxTile(self: Board) u4 {
-  var result: u4 = 0;
-  var data = self.data;
-
-  for (0..16) |_| {
-    const tile: u4 = @truncate(data);
-    result = @max(result, tile);
-    data >>= 4;
-  }
-
-  return result;
-}
-
-pub fn score(self: Board, four_count: u32) u32 {
-  var data = self.data;
-  var result: u32 = 0;
-  for (0..16) |_| {
-    const tile: u4 = @truncate(data);
-    result += @as(u32, tile -| 1) << tile;
-    data >>= 4;
-  }
-  return result - 4 * four_count;
 }
 
 // Lehmer64 PRNG hash function, a very fast but weak hash function that
