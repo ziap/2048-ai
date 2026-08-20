@@ -111,9 +111,9 @@ pub inline fn getBoard(self: *const Game) Board {
   return self.state.board;
 }
 
-pub fn executeMove(self: *Game, dir: u2) void {
+pub fn executeMove(self: *Game, dir: Board.Dir) void {
   const moves = self.move_table.getMoves(self.state.board);
-  const board, const is_four = addTile(moves[dir], &self.rng);
+  const board, const is_four = addTile(moves.get(dir).*, &self.rng);
   self.state.board = board;
   self.state.four_count += is_four;
 }

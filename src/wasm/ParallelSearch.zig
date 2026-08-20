@@ -199,7 +199,7 @@ pub fn request(self: *ParallelSearch, valid: *const Board.ValidMoves, depth: u6)
 // Waits out the batch `request` handed over, re-running it if `depth`
 // came out / deeper than what was predicted, and returns the move the
 // scores choose.
-pub fn finalize(self: *ParallelSearch, tag: u8, depth: u6) ?u2 {
+pub fn finalize(self: *ParallelSearch, tag: u8, depth: u6) ?Board.Dir {
   const count = self.frontier_len;
 
   if (count > 0) {

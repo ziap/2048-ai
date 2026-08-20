@@ -1,7 +1,11 @@
-pub const UP: u2 = 0;
-pub const RIGHT: u2 = 1;
-pub const DOWN: u2 = 2;
-pub const LEFT: u2 = 3;
+pub const Dir = enum {
+  up,
+  right,
+  down,
+  left,
+};
+
+pub const Moves = EnumMap(Dir, Board);
 
 const Board = @This();
 const Fmc256 = @import("Fmc256.zig");
@@ -87,29 +91,29 @@ pub const MoveTable = struct {
     }
   }
 
-  pub fn getMoves(self: *const MoveTable, board: Board) [4]Board {
+  pub fn getMoves(self: *const MoveTable, board: Board) Moves {
     const data = board.data;
     const transposed = board.transpose().data;
 
-    var result: [4]Board = undefined;
+    var result: Moves = undefined;
 
     inline for (0..4) |idx| {
       const shift = comptime (3 - idx) * 16;
       const row: u16 = @truncate(data >> shift);
       const col: u16 = @truncate(transposed >> shift);
 
-      inline for (0..4) |dir| {
-        result[dir].data <<= 16;
+      inline for (&result.values) |*value| {
+        value.data <<= 16;
       }
 
-      result[UP].data    |= self.forward_table[col];
-      result[DOWN].data  |= self.reverse_table[col];
-      result[LEFT].data  |= self.forward_table[row];
-      result[RIGHT].data |= self.reverse_table[row];
+      result.getMut(.up).data    |= self.forward_table[col];
+      result.getMut(.down).data  |= self.reverse_table[col];
+      result.getMut(.left).data  |= self.forward_table[row];
+      result.getMut(.right).data |= self.reverse_table[row];
     }
 
-    result[UP] = result[UP].transpose();
-    result[DOWN] = result[DOWN].transpose();
+    result.getMut(.up).* = result.get(.up).transpose();
+    result.getMut(.down).* = result.get(.down).transpose();
 
     return result;
   }
@@ -117,15 +121,15 @@ pub const MoveTable = struct {
 
 pub const ValidMoves = struct {
   len: u5,
-  moves: [4]Board,
-  dirs: [4]u2,
+  moves: [Moves.len]Board,
+  dirs: [Moves.len]Dir,
 };
 
-pub fn filterMoves(self: Board, moves: *const [4]Board) ValidMoves {
+pub fn filterMoves(self: Board, moves: *const Moves) ValidMoves {
   var result: ValidMoves = .{ .len = 0, .moves = undefined, .dirs = undefined };
   const formation: Formation = .get(self);
 
-  inline for (moves, 0..) |move, dir| {
+  inline for (Moves.keys, moves.values) |dir, move| {
     if (move.data != self.data and formation.intact(move)) {
       result.moves[result.len] = move;
       result.dirs[result.len] = dir;
@@ -135,7 +139,7 @@ pub fn filterMoves(self: Board, moves: *const [4]Board) ValidMoves {
 
   if (result.len > 0) return result;
 
-  inline for (moves, 0..) |move, dir| {
+  inline for (Moves.keys, moves.values) |dir, move| {
     if (move.data != self.data) {
       result.moves[result.len] = move;
       result.dirs[result.len] = dir;
@@ -155,3 +159,4 @@ pub inline fn hash(self: Board, bits: comptime_int) @Int(.unsigned, bits) {
 }
 
 const Formation = @import("Formation.zig");
+const EnumMap = @import("enum_map.zig").EnumMap;
