@@ -94,6 +94,29 @@ pub inline fn reverse16(x: u16) u16 {
   );
 }
 
+pub fn moveLine(T: type, line: *[4]T) void {
+  var furthest: u3 = 4;
+  var merged = false;
+
+  var i: u3 = 3;
+  while (i < 4) : (i -%= 1) {
+    if (line[i] == 0) continue;
+
+    if (!merged and furthest < 4 and line[i] == line[furthest]) {
+      line[furthest] = line[furthest] +| 1;
+      line[i] = 0;
+      merged = true;
+    } else if (furthest == i + 1) {
+      furthest = i;
+    } else {
+      furthest -= 1;
+      line[furthest] = line[i];
+      line[i] = 0;
+      merged = false;
+    }
+  }
+}
+
 pub const MoveTable = struct {
   const MAX_ROW = 65536;
 
@@ -109,26 +132,7 @@ pub const MoveTable = struct {
         @truncate(row >> 12),
       };
 
-      var furthest: u3 = 4;
-      var merged = false;
-
-      var i: u3 = 3;
-      while (i < 4) : (i -%= 1) {
-        if (line[i] == 0) continue;
-
-        if (!merged and furthest < 4 and line[i] == line[furthest]) {
-          line[furthest] = line[furthest] +| 1;
-          line[i] = 0;
-          merged = true;
-        } else if (furthest == i + 1) {
-          furthest = i;
-        } else {
-          furthest -= 1;
-          line[furthest] = line[i];
-          line[i] = 0;
-          merged = false;
-        }
-      }
+      moveLine(u4, &line);
 
       const moved = moved: {
         var moved: u16 = 0;
