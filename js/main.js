@@ -93,7 +93,7 @@ window.requestAnimationFrame(async () => {
       for (let j = 0; j < 4; ++j) {
         const tile = cells[j][i]
         result <<= 4n
-        if (tile) result |= log2Lut.get(tile.value)
+        if (tile) result |= log2Lut.get(tile.value) ?? 15n
       }
     }
     return result;
