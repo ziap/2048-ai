@@ -83,4 +83,4 @@ const Heuristic = engine.Heuristic;
 const Args = @import("Args.zig");
 const Worker = @import("Worker.zig");
 const Stats = @import("Stats.zig");
-const LazyInit = @import("lazy_init.zig").LazyInit;
+const LazyInit = @import("utils").LazyInit;

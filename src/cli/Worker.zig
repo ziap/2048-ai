@@ -105,7 +105,7 @@ pub fn run_games(self: *Worker, out: *Stats) !void {
 
 const std = @import("std");
 const engine = @import("engine");
-const Fmc256 = engine.Fmc256;
+const Fmc256 = @import("utils").Fmc256;
 const Board = engine.Board;
 const Game = engine.Game;
 const Heuristic = engine.Heuristic;

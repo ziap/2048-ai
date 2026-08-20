@@ -119,4 +119,4 @@ pub fn executeMove(self: *Game, dir: Board.Dir) void {
 }
 
 const Board = @import("Board.zig");
-const Fmc256 = @import("Fmc256.zig");
+const Fmc256 = @import("utils").Fmc256;
