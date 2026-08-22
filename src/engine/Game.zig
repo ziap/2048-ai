@@ -40,7 +40,7 @@ pub const State = struct {
         };
 
         const tile = data >> 60;
-        try out.writeAll(if ((ext >> 15) == 1) lut[tile] else "65536");
+        try out.writeAll(if ((ext >> 15) == 0) lut[tile] else "| 65536 ");
 
         data <<= 4;
         ext <<= 1;
@@ -51,16 +51,21 @@ pub const State = struct {
 
   pub fn score(self: State) u32 {
     var data = self.board.clamped.data;
+    var ext = self.board.ext;
+
     var result: u32 = 0;
     for (0..16) |_| {
-      const tile: u4 = @truncate(data);
+      const tile: u5 = if (ext & 1 == 0) @as(u4, @truncate(data)) else 16;
       result += @as(u32, tile -| 1) << tile;
       data >>= 4;
+      ext >>= 1;
     }
     return result - 4 * self.four_count;
   }
 
   pub fn maxTile(self: State) u5 {
+    if (self.board.ext > 0) return 16;
+
     var result: u4 = 0;
     var data = self.board.clamped.data;
 
@@ -75,7 +80,7 @@ pub const State = struct {
 };
 
 state: State,
-move_table: *const Board.MoveTable,
+move_table: *const BoardExt.MoveTable,
 rng: Fmc256,
 
 fn addTile(self: Board, rng: *Fmc256) struct { Board, u1 } {
@@ -98,7 +103,7 @@ fn addTile(self: Board, rng: *Fmc256) struct { Board, u1 } {
   };
 }
 
-pub fn new(rng: Fmc256, move_table: *const Board.MoveTable) Game {
+pub fn new(rng: Fmc256, move_table: *const BoardExt.MoveTable) Game {
   var local_rng = rng;
   const board: Board = .{ .data = 0 };
   const board1, const is_four1 = addTile(board, &local_rng);
@@ -119,9 +124,10 @@ pub inline fn getBoard(self: *const Game) Board {
 }
 
 pub fn executeMove(self: *Game, dir: Board.Dir) void {
-  const moves = self.move_table.getMoves(self.state.board.clamped);
-  const board, const is_four = addTile(moves.get(dir).*, &self.rng);
-  self.state.board.clamped = board;
+  const moves = self.move_table.getMoves(self.state.board);
+  const moved = moves.get(dir);
+  const board, const is_four = addTile(moved.clamped, &self.rng);
+  self.state.board = .{ .clamped = board, .ext = moved.ext };
   self.state.four_count += is_four;
 }
 
