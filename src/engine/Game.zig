@@ -1,11 +1,14 @@
 const Game = @This();
 
 pub const State = struct {
-  board: Board,
+  board: BoardExt,
   four_count: u32,
 
   pub const empty: State = .{
-    .board = .{ .data = 0 },
+    .board = .{
+      .clamped = .{ .data = 0, },
+      .ext = 0,
+    },
     .four_count = 0,
   };
 
@@ -13,7 +16,9 @@ pub const State = struct {
     const first_line = "+-------+-------+-------+-------+\n";
     const line = "|\n" ++ first_line;
 
-    var data = self.board.data;
+    var data = self.board.clamped.data;
+    var ext = self.board.ext;
+
     try out.writeAll(first_line);
 
     for (0..4) |_| {
@@ -35,15 +40,17 @@ pub const State = struct {
         };
 
         const tile = data >> 60;
+        try out.writeAll(if ((ext >> 15) == 1) lut[tile] else "65536");
+
         data <<= 4;
-        try out.writeAll(lut[tile]);
+        ext <<= 1;
       }
       try out.writeAll(line);
     }
   }
 
   pub fn score(self: State) u32 {
-    var data = self.board.data;
+    var data = self.board.clamped.data;
     var result: u32 = 0;
     for (0..16) |_| {
       const tile: u4 = @truncate(data);
@@ -55,7 +62,7 @@ pub const State = struct {
 
   pub fn maxTile(self: State) u5 {
     var result: u4 = 0;
-    var data = self.board.data;
+    var data = self.board.clamped.data;
 
     for (0..16) |_| {
       const tile: u4 = @truncate(data);
@@ -99,7 +106,7 @@ pub fn new(rng: Fmc256, move_table: *const Board.MoveTable) Game {
 
   return .{
     .state = .{
-      .board = board2,
+      .board = .{ .clamped = board2, .ext = 0 },
       .four_count = @as(u2, is_four1) + @as(u2, is_four2),
     },
     .move_table = move_table,
@@ -108,15 +115,16 @@ pub fn new(rng: Fmc256, move_table: *const Board.MoveTable) Game {
 }
 
 pub inline fn getBoard(self: *const Game) Board {
-  return self.state.board;
+  return self.state.board.clamped;
 }
 
 pub fn executeMove(self: *Game, dir: Board.Dir) void {
-  const moves = self.move_table.getMoves(self.state.board);
+  const moves = self.move_table.getMoves(self.state.board.clamped);
   const board, const is_four = addTile(moves.get(dir).*, &self.rng);
-  self.state.board = board;
+  self.state.board.clamped = board;
   self.state.four_count += is_four;
 }
 
 const Board = @import("Board.zig");
+const BoardExt = @import("BoardExt.zig");
 const Fmc256 = @import("utils").Fmc256;

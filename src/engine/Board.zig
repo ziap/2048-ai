@@ -158,7 +158,4 @@ pub inline fn hash(self: Board, bits: comptime_int) @Int(.unsigned, bits) {
 }
 
 const Formation = @import("Formation.zig");
-
-const utils = @import("utils");
-const EnumMap = utils.EnumMap;
-const Fmc256 = utils.Fmc256;
+const EnumMap = @import("utils").EnumMap;
