@@ -139,5 +139,40 @@ fn transpose(self: BoardExt) BoardExt {
   };
 }
 
+inline fn different(a: BoardExt, b: BoardExt) bool {
+  return a.clamped.data != b.clamped.data or a.ext != b.ext;
+}
+
+pub fn filterAndClampMoves(self: BoardExt, moves: *const Moves) Board.ValidMoves {
+  var result: Board.ValidMoves = .{
+    .len = 0,
+    .moves = undefined,
+    .dirs = undefined,
+  };
+
+  const formation: Formation = .get(self.clamped);
+
+  inline for (Moves.keys, moves.values) |dir, move| {
+    if (different(self, move) and formation.intact(move.clamped)) {
+      result.moves[result.len] = move.clamped;
+      result.dirs[result.len] = dir;
+      result.len += 1;
+    }
+  }
+
+  if (result.len > 0) return result;
+
+  inline for (Moves.keys, moves.values) |dir, move| {
+    if (different(self, move)) {
+      result.moves[result.len] = move.clamped;
+      result.dirs[result.len] = dir;
+      result.len += 1;
+    }
+  }
+
+  return result;
+}
+
 const Board = @import("Board.zig");
+const Formation = @import("Formation.zig");
 const EnumMap = @import("utils").EnumMap;

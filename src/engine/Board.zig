@@ -125,7 +125,12 @@ pub const ValidMoves = struct {
 };
 
 pub fn filterMoves(self: Board, moves: *const Moves) ValidMoves {
-  var result: ValidMoves = .{ .len = 0, .moves = undefined, .dirs = undefined };
+  var result: ValidMoves = .{
+    .len = 0,
+    .moves = undefined,
+    .dirs = undefined,
+  };
+
   const formation: Formation = .get(self);
 
   inline for (Moves.keys, moves.values) |dir, move| {

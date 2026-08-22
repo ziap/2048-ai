@@ -63,27 +63,26 @@ pub fn run_games(self: *Worker, out: *Stats) !void {
 
     var game: Game = .new(self.rng, self.move_table);
 
-    var total_time: f64 = 0;
-    var total_move: u64 = 0;
-
     self.expectimax.clear();
 
-    while (true) {
-      const board = game.getBoard();
-      const moves = self.move_table.table16.getMoves(board);
-      const valid = board.filterMoves(&moves);
+    const start_time = std.Io.Timestamp.now(self.io, .awake);
+    var total_move: u64 = 0;
 
-      const start_time = std.Io.Timestamp.now(self.io, .awake);
+    while (true) {
+      const board = game.state.board;
+      const moves = self.move_table.getMoves(board);
+      const valid = board.filterAndClampMoves(&moves);
 
       const depth = bfs.expand(valid.moves[0..valid.len]).depth +| 1;
       const dir = self.expectimax.call(&valid, depth) orelse break;
-      const done_time = std.Io.Timestamp.now(self.io, .awake);
-      const duration = start_time.durationTo(done_time);
 
-      game.executeMove(dir);
-      total_time += @as(f64, @floatFromInt(duration.toNanoseconds()));
+      game.executeMove(moves.get(dir).*);
       total_move += 1;
     }
+
+    const done_time = std.Io.Timestamp.now(self.io, .awake);
+    const duration = start_time.durationTo(done_time);
+    const total_time = @as(f64, @floatFromInt(duration.toNanoseconds()));
 
     stats = stats.combine(&.fromResult(.{
       .final_state = game.state,
