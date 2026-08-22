@@ -61,7 +61,7 @@ pub fn run_games(self: *Worker, out: *Stats) !void {
       jumped += 1;
     }
 
-    var game: Game = .new(self.rng, self.move_table);
+    var game: Game = .new(self.rng);
 
     self.expectimax.clear();
 

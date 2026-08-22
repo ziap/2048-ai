@@ -80,7 +80,6 @@ pub const State = struct {
 };
 
 state: State,
-move_table: *const BoardExt.MoveTable,
 rng: Fmc256,
 
 fn addTile(self: Board, rng: *Fmc256) struct { Board, u1 } {
@@ -103,7 +102,7 @@ fn addTile(self: Board, rng: *Fmc256) struct { Board, u1 } {
   };
 }
 
-pub fn new(rng: Fmc256, move_table: *const BoardExt.MoveTable) Game {
+pub fn new(rng: Fmc256) Game {
   var local_rng = rng;
   const board: Board = .{ .data = 0 };
   const board1, const is_four1 = addTile(board, &local_rng);
@@ -114,7 +113,6 @@ pub fn new(rng: Fmc256, move_table: *const BoardExt.MoveTable) Game {
       .board = .{ .clamped = board2, .ext = 0 },
       .four_count = @as(u2, is_four1) + @as(u2, is_four2),
     },
-    .move_table = move_table,
     .rng = local_rng,
   };
 }
