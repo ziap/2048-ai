@@ -1,3 +1,6 @@
+var move_table: LazyInit(BoardExt.MoveTable) = .uninit;
+var heuristic: LazyInit(Heuristic) = .uninit;
+
 pub fn main(init: std.process.Init) !void {
   const allocator = init.arena.allocator();
 
@@ -9,9 +12,6 @@ pub fn main(init: std.process.Init) !void {
   const writer = &stdout.interface;
 
   try args.display(writer);
-
-  var move_table: LazyInit(Board.MoveTable) = .uninit;
-  var heuristic: LazyInit(Heuristic) = .uninit;
 
   const bg_threads = args.threads - 1;
 
@@ -77,7 +77,7 @@ pub fn main(init: std.process.Init) !void {
 
 const std = @import("std");
 const engine = @import("engine");
-const Board = engine.Board;
+const BoardExt = engine.BoardExt;
 const Heuristic = engine.Heuristic;
 
 const Args = @import("Args.zig");

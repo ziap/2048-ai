@@ -1,4 +1,5 @@
 pub const Board = @import("Board.zig");
+pub const BoardExt = @import("BoardExt.zig");
 pub const Game = @import("Game.zig");
 pub const Formation = @import("Formation.zig");
 pub const Bfs = @import("Bfs.zig");

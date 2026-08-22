@@ -4,13 +4,10 @@ pub fn EnumMap(Key: type, Value: type) type {
     else => @compileError("key of `EnumMap` must be an enum"),
   };
 
-  var size = 0;
-  for (info.fields) |field| {
-    size = @max(size, field.value);
-  }
-
-  if (size + 1 != info.fields.len) {
-    @compileError("sparse enum not supported");
+  for (info.fields, 0..) |field, value| {
+    if (field.value != value) {
+      @compileError("sparse enum not supported");
+    }
   }
 
   return struct {

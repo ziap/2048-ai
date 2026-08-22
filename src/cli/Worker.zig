@@ -8,13 +8,13 @@ write_lock: *std.Io.Mutex,
 next_game: *std.atomic.Value(u32),
 total_games: u32,
 io: std.Io,
-move_table: *const Board.MoveTable,
+move_table: *const BoardExt.MoveTable,
 expectimax: Expectimax,
 bfs: Bfs,
 
 pub const Shared = struct {
   args: Args,
-  move_table: *const Board.MoveTable,
+  move_table: *const BoardExt.MoveTable,
   heuristic: *const Heuristic,
   write_lock: *std.Io.Mutex,
   next_game: *std.atomic.Value(u32),
@@ -35,11 +35,11 @@ pub fn new(id: u32, shared: *const Shared) !Worker {
     .io = shared.io,
     .move_table = shared.move_table,
     .expectimax = .{
-      .move_table = shared.move_table,
+      .move_table = &shared.move_table.table16,
       .heuristic = shared.heuristic,
       .cache = cache,
     },
-    .bfs = .new(bfs_buffer, shared.move_table),
+    .bfs = .new(bfs_buffer, &shared.move_table.table16),
   };
 }
 
@@ -70,7 +70,7 @@ pub fn run_games(self: *Worker, out: *Stats) !void {
 
     while (true) {
       const board = game.getBoard();
-      const moves = self.move_table.getMoves(board);
+      const moves = self.move_table.table16.getMoves(board);
       const valid = board.filterMoves(&moves);
 
       const start_time = std.Io.Timestamp.now(self.io, .awake);
@@ -107,6 +107,7 @@ const std = @import("std");
 const engine = @import("engine");
 const Fmc256 = @import("utils").Fmc256;
 const Board = engine.Board;
+const BoardExt = engine.BoardExt;
 const Game = engine.Game;
 const Heuristic = engine.Heuristic;
 const Bfs = engine.Bfs;

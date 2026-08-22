@@ -1,3 +1,5 @@
+const Board = @This();
+
 pub const Dir = enum {
   up,
   right,
@@ -6,8 +8,6 @@ pub const Dir = enum {
 };
 
 pub const Moves = EnumMap(Dir, Board);
-
-const Board = @This();
 
 data: u64,
 
@@ -60,7 +60,7 @@ pub fn moveLine(T: type, line: *[4]T) void {
 }
 
 pub const MoveTable = struct {
-  const MAX_ROW = 65536;
+  const MAX_ROW = 1 << 16;
 
   forward_table: [MAX_ROW]u16,
   reverse_table: [MAX_ROW]u16,
@@ -92,14 +92,14 @@ pub const MoveTable = struct {
 
   pub fn getMoves(self: *const MoveTable, board: Board) Moves {
     const data = board.data;
-    const transposed = board.transpose().data;
+    const data_transposed = board.transpose().data;
 
     var result: Moves = undefined;
 
     inline for (0..4) |idx| {
       const shift = comptime (3 - idx) * 16;
       const row: u16 = @truncate(data >> shift);
-      const col: u16 = @truncate(transposed >> shift);
+      const col: u16 = @truncate(data_transposed >> shift);
 
       inline for (&result.values) |*value| {
         value.data <<= 16;
