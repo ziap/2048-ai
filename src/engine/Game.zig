@@ -119,13 +119,7 @@ pub fn new(rng: Fmc256, move_table: *const BoardExt.MoveTable) Game {
   };
 }
 
-pub inline fn getBoard(self: *const Game) Board {
-  return self.state.board.clamped;
-}
-
-pub fn executeMove(self: *Game, dir: Board.Dir) void {
-  const moves = self.move_table.getMoves(self.state.board);
-  const moved = moves.get(dir);
+pub fn executeMove(self: *Game, moved: BoardExt) void {
   const board, const is_four = addTile(moved.clamped, &self.rng);
   self.state.board = .{ .clamped = board, .ext = moved.ext };
   self.state.four_count += is_four;
