@@ -154,8 +154,9 @@ pub fn filterMoves(self: Board, moves: *const Moves) ValidMoves {
   return result;
 }
 
-// Lehmer64 PRNG hash function, a very fast but weak hash function that
-// comphensate its speed for some extra collisions
+// Multiply-shift hash function, extremely fast and almost indistinguishable
+// from higher-quality hashes for this problem. Extracting the high bits
+// otherwise the hash only depends on the low nibbles of the input board.
 pub inline fn hash(self: Board, bits: comptime_int) @Int(.unsigned, bits) {
   // MCG multiplier from: <https://arxiv.org/pdf/2001.05304>
   const h = self.data *% 0xf1357aea2e62a9c5;

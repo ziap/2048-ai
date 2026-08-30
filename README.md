@@ -27,12 +27,12 @@ overhead of the web platform. It also allows for reproducible benchmarking of
 the AI playing multiple games in parallel. Here's the current benchmark
 results:
 
-| Budget | Speed          | Avg Score | % 32768 | % 16384 | % 8192 |
-| ------ | -------------- | --------- | ------- | ------- | ------ |
-| 2^15   | 1611.8 moves/s | 302036    | 6.8     | 69.2    | 94.5   |
-| 2^17   | 422.6 moves/s  | 374061    | 18.7    | 82.5    | 95.9   |
-| 2^19   | 128.4 moves/s  | 427012    | 33.5    | 86.2    | 94.9   |
-| 2^21   | 25.4 moves/s   | 422883    | 35.9    | 80.2    | 90.9   |
+| Budget | Speed          | Avg Score | % 65536 | % 32768 | % 16384 | % 8192 |
+| ------ | -------------- | --------- | ------- | ------- | ------- | ------ |
+| 2^15   | 1523.2 moves/s | 313838    | 0.0     | 9.1     | 72.1    | 95.8   |
+| 2^17   | 397.7 moves/s  | 389180    | 0.0     | 21.6    | 85.0    | 97.5   |
+| 2^19   | 119.5 moves/s  | 468109    | 0.1     | 39.1    | 91.1    | 98.9   |
+| 2^21   | 23.8 moves/s   | 530970    | 0.2     | 51.7    | 94.7    | 99.1   |
 
 The speed is computed by averaging 10 games in single-threaded mode, on an AMD
 Ryzen 5 5600G CPU. The average score and tile reaching rate is computed by
@@ -41,20 +41,30 @@ using the seed `benchmark`, see the usage [below](#usage).
 
 ## Features
 
-- 64-bit bitboard representation
-- Table lookup for movement and evaluation
-- Depth allocation using memory-constrained BFS
-- Web version:
-  - Subtree parallelism
-- Console version:
-  - Game parallelism
-  - Search budget configuration
-  - Fully deterministic benchmark
-- Memory optimizations:
-  - No dynamic allocation during search
-  - Console version: allocate everything at startup
-  - Web version: only use stack and static memory
-  - Cache-efficient data structures
+Efficient bitboard implementation:
+- Fast move generation and leaf evaluation using table lookup
+- Highly optimized bitwise operations
+- Use 64-bit for search and 80-bit for simulation supporting the 65536 tile
+
+Advanced search techniques:
+- Dynamic depth allocation using memory-constrained BFS
+- Approximated deduplication with hash sorting and transposition table
+- Prune formation breaking moves
+
+Web version:
+- Subtree parallelism with a worker pool
+- Shared, lock-free transposition table
+
+Console version:
+- Simulating and solving multiple games in parallel
+- Fully deterministic benchmark even under parallelism
+- Search budget configuration
+
+Memory optimizations:
+- No dynamic allocation during search
+- Console version: allocate everything at startup
+- Web version: only use stack and static memory
+- Cache-efficient data structures
 
 ## Usage
 
