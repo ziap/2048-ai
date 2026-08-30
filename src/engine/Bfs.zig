@@ -69,12 +69,7 @@ fn sort(self: *Bfs, len: u32) void {
 
 const OVERFLOW_MARGIN = 2;
 
-const Result = struct {
-  boards: []const Board,
-  depth: u6,
-};
-
-pub fn expand(self: *Bfs, initial: []const Board) Result {
+pub fn expand(self: *Bfs, initial: []const Board) u6 {
   @memcpy(self.current[0..initial.len], initial);
   var current_len: u32 = @intCast(initial.len);
 
@@ -83,10 +78,10 @@ pub fn expand(self: *Bfs, initial: []const Board) Result {
 
   const MAX_DEPTH: u6 = @truncate(-1);
   search: while (current_len > 0 and depth < MAX_DEPTH) {
-    self.sort(current_len);
-
     const estimate = @as(u64, current_len) * current_len / prev_len;
     if (estimate > @as(u64, self.next.len) * OVERFLOW_MARGIN) break :search;
+
+    self.sort(current_len);
 
     var next_len: u32 = 0;
     var last: u64 = 0;
@@ -126,10 +121,7 @@ pub fn expand(self: *Bfs, initial: []const Board) Result {
     depth += 1;
   }
 
-  return .{
-    .boards = self.current[0..current_len],
-    .depth = depth,
-  };
+  return depth;
 }
 
 const builtin = @import("builtin");

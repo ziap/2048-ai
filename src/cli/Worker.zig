@@ -73,7 +73,7 @@ pub fn run_games(self: *Worker, out: *Stats) !void {
       const moves = self.move_table.getMoves(board);
       const valid = board.filterAndClampMoves(&moves);
 
-      const depth = bfs.expand(valid.moves[0..valid.len]).depth +| 1;
+      const depth = bfs.expand(valid.moves[0..valid.len]) +| 1;
       const dir = self.expectimax.call(&valid, depth) orelse break;
 
       game.executeMove(moves.get(dir).*);

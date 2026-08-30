@@ -29,10 +29,10 @@ results:
 
 | Budget | Speed          | Avg Score | % 65536 | % 32768 | % 16384 | % 8192 |
 | ------ | -------------- | --------- | ------- | ------- | ------- | ------ |
-| 2^15   | 1523.2 moves/s | 313838    | 0.0     | 9.1     | 72.1    | 95.8   |
-| 2^17   | 397.7 moves/s  | 389180    | 0.0     | 21.6    | 85.0    | 97.5   |
-| 2^19   | 119.5 moves/s  | 468109    | 0.1     | 39.1    | 91.1    | 98.9   |
-| 2^21   | 23.8 moves/s   | 530970    | 0.2     | 51.7    | 94.7    | 99.1   |
+| 2^15   | 1639.1 moves/s | 313838    | 0.0     | 9.1     | 72.1    | 95.8   |
+| 2^17   | 419.0 moves/s  | 389180    | 0.0     | 21.6    | 85.0    | 97.5   |
+| 2^19   | 125.9 moves/s  | 468109    | 0.1     | 39.1    | 91.1    | 98.9   |
+| 2^21   | 25.5 moves/s   | 530970    | 0.2     | 51.7    | 94.7    | 99.1   |
 
 The speed is computed by averaging 10 games in single-threaded mode, on an AMD
 Ryzen 5 5600G CPU. The average score and tile reaching rate is computed by

@@ -25,7 +25,7 @@ fn allocDepth(valid: *const Board.ValidMoves) u6 {
   };
   const buffer = S.bfs_buffer[0..S.bfs_buffer.len];
   var bfs: Bfs = .new(buffer, &ctx.move_table);
-  return bfs.expand(valid.moves[0..valid.len]).depth;
+  return bfs.expand(valid.moves[0..valid.len]);
 }
 
 export fn reset_depth() void {
