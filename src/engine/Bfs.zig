@@ -14,33 +14,12 @@ pub inline fn new(buffer: []Board, move_table: *const Board.MoveTable) Bfs {
   };
 }
 
-// TODO(zig 0.17): delete `clear` and go back to a plain `@memset(count, 0)`.
-//
-// Zig 0.16 stopped linking musl's memset in favour of a Zig implementation in
-// compiler_rt that compiles to a byte-at-a-time loop (ziglang/zig#32091, fixed
-// in the 0.17 milestone). Clearing these 256 KiB of buckets twice per sort()
-// call is the hottest thing in the program, so it alone costs ~1.5x
-// end-to-end.
-//
-// Wasm is excluded deliberately, bulk_memory lowers @memset to a single
-// memory.fill, and forcing the loop there replaces it with a v128.store loop.
-inline fn clear(count: *align(64) [65536]u32) void {
-  if (comptime builtin.target.cpu.arch.isWasm()) {
-    @memset(count, 0);
-    return;
-  }
-
-  const V = @Vector(16, u32);
-  const vectors: *volatile [count.len / 16]V = @ptrCast(count);
-  for (vectors) |*v| v.* = @splat(0);
-}
-
 // Sort by 32-bit hash to improve speed at the cost of duplication
 fn sort(self: *Bfs, len: u32) void {
   const S = struct {
     inline fn pass(in: []Board, out: []Board, count: *align(64) [65536]u32, idx: comptime_int) void {
       const shift = comptime @as(u5, idx) * 16;
-      clear(count);
+      @memset(count, 0);
       for (in) |item| {
         const radix: u16 = @truncate(item.hash(32) >> shift);
         count[radix] += 1;

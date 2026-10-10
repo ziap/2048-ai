@@ -4,15 +4,15 @@ pub fn EnumMap(Key: type, Value: type) type {
     else => @compileError("key of `EnumMap` must be an enum"),
   };
 
-  for (info.fields, 0..) |field, value| {
-    if (field.value != value) {
+  for (info.field_values, 0..) |field, value| {
+    if (field != value) {
       @compileError("sparse enum not supported");
     }
   }
 
   return struct {
     const Self = @This();
-    pub const len = info.fields.len;
+    pub const len = info.field_values.len;
 
     pub const keys: [len]Key = blk: {
       var arr: [len]Key = undefined;

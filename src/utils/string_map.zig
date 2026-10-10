@@ -44,15 +44,15 @@ pub fn StringMap(V: type) type {
     pub fn init(comptime kvs: anytype) @This() {
       comptime {
         const type_info = @typeInfo(@TypeOf(kvs));
-        const fields = type_info.@"struct".fields;
+        const fields = type_info.@"struct".field_names;
         
         const min_len, const max_len = range: {
-          var min_len = fields[0].name.len;
-          var max_len = fields[0].name.len;
+          var min_len = fields[0].len;
+          var max_len = fields[0].len;
 
           for (fields[1..]) |field| {
-            min_len = @min(min_len, field.name.len);
-            max_len = @max(max_len, field.name.len);
+            min_len = @min(min_len, field.len);
+            max_len = @max(max_len, field.len);
           }
 
           break :range .{ min_len, max_len };
@@ -60,7 +60,7 @@ pub fn StringMap(V: type) type {
 
         var counts: [max_len + 1 - min_len]u32 = @splat(0);
         for (fields) |field| {
-          counts[field.name.len - min_len] += 1;
+          counts[field.len - min_len] += 1;
         }
 
         var acc = 0;
@@ -81,10 +81,10 @@ pub fn StringMap(V: type) type {
         } = @splat(.{ .none = {} });
 
         for (fields) |field| {
-          const bin = field.name.len - min_len;
+          const bin = field.len - min_len;
           const idx = counts[bin];
-          sorted_keys[idx] = .{ .some = field.name };
-          sorted_values[idx] = .{ .some = @field(kvs, field.name) };
+          sorted_keys[idx] = .{ .some = field };
+          sorted_values[idx] = .{ .some = @field(kvs, field) };
           counts[bin] += 1;
         }
 
