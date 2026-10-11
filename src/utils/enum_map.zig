@@ -17,7 +17,7 @@ pub fn EnumMap(Key: type, Value: type) type {
     pub const keys: [len]Key = blk: {
       var arr: [len]Key = undefined;
       for (&arr, 0..) |*item, key| {
-        item.* = @enumFromInt(key);
+        item.* = @fromBackingInt(key);
       }
       break :blk arr;
     };
@@ -25,11 +25,11 @@ pub fn EnumMap(Key: type, Value: type) type {
     values: [len]Value,
 
     pub inline fn get(self: *const Self, key: Key) *const Value {
-      return &self.values[@intFromEnum(key)];
+      return &self.values[@backingInt(key)];
     }
 
     pub inline fn getMut(self: *Self, key: Key) *Value {
-      return &self.values[@intFromEnum(key)];
+      return &self.values[@backingInt(key)];
     }
   };
 }

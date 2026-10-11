@@ -47,7 +47,7 @@ export fn search(board_data: u64) i32 {
 
   const searchResult = ctx.searcher.finalize(tag, depth);
   if (searchResult) |dir| {
-    return @intFromEnum(dir);
+    return @backingInt(dir);
   }
   return -1;
 }
