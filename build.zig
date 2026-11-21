@@ -2,10 +2,17 @@ const std = @import("std");
 
 const MEMORY_BYTES = 64 * 1024 * 1024;
 
+// BFS buffer size used by the wasm depth allocation, in Boards (8 bytes each).
+// The console build exposes the same knob as `-b`; this makes the web build
+// configurable too instead of a constant buried in src/wasm/main.zig.
+const DEFAULT_BUDGET = 655360;
+
 pub fn build(b: *std.Build) void {
   const target = b.standardTargetOptions(.{});
   const optimize = b.standardOptimizeOption(.{});
   const strip = optimize == .fast or optimize == .small;
+
+  const budget = b.option(u32, "budget", "BFS buffer size for the wasm build, in Boards") orelse DEFAULT_BUDGET;
 
   const utils = b.addModule("utils", .{
     .root_source_file = b.path("src/utils/main.zig"),
@@ -78,6 +85,10 @@ pub fn build(b: *std.Build) void {
       .imports = &imports,
     }),
   });
+
+  const wasm_options = b.addOptions();
+  wasm_options.addOption(u32, "budget", budget);
+  wasm_main.root_module.addOptions("build_options", wasm_options);
 
   wasm_main.rdynamic = true;
   wasm_main.entry = .disabled;

@@ -69,11 +69,19 @@ Memory optimizations:
 ## Usage
 
 Get [Zig](https://ziglang.org/) version
-[0.16.0](https://ziglang.org/download/#release-0.16.0), and compile everything
-with optimization using the following command:
+[0.17.1](https://ziglang.org/download/#release-0.17.1) — 0.16.0 no longer
+compiles `master`, see `docs/wasm-budget.md` — and compile everything with
+optimization using the following command:
 
 ```sh
 zig build --release=fast
+```
+
+The web build's search budget is a build option; the default reproduces the
+checked-in `zig-out/main.wasm` byte for byte:
+
+```sh
+zig build --release=fast -Dbudget=2097152   # deeper search, ~3x slower per late-game move
 ```
 
 Use `zig build -l` and `zig build -h` to customize the compilation. Run the

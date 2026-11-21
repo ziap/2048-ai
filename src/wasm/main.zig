@@ -1,4 +1,6 @@
-const BFS_BUDGET = 655360;
+// Sized by `zig build -Dbudget=<boards>` (see build.zig), defaulting to the
+// historical 655360 so an unconfigured build is byte-for-byte unchanged.
+const BFS_BUDGET = @import("build_options").budget;
 
 const MAX_POOL = 31;
 const WORKER_STACK = 256 * 1024;
